@@ -46,7 +46,7 @@ def generate_face_grid(face_bbox, image_shape, grid_size=25):
     return face_grid.flatten()
 
 def gaze_cm_to_pixels(gaze_x_cm, gaze_y_cm):
-    x_pixel = (gaze_x_cm + GAZE_RANGE_CM) / (2 * GAZE_RANGE_CM) * SCREEN_WIDTH
+    x_pixel = (GAZE_RANGE_CM + gaze_x_cm) / (2 * GAZE_RANGE_CM) * SCREEN_WIDTH
     y_pixel = (GAZE_RANGE_CM - gaze_y_cm) / (2 * GAZE_RANGE_CM) * SCREEN_HEIGHT
     
     return int(x_pixel), int(y_pixel)
