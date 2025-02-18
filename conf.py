@@ -56,8 +56,8 @@ master_doc = 'index'
 
 # General information about the project.
 author = "Pather Stevenson, Deise Santana Maia"
-project = "PFE Eye Tracking"
-copyright = "2025, Pather Stevenson, Deise Santana Maia, Univ. Lille"
+project = "Module PFE Eye Tracking"
+copyright = "2025, Pather Stevenson, Deise Santana Maia, CRIStAL - Univ. Lille"
 
 
 

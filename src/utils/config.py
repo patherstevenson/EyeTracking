@@ -1,10 +1,23 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
 
+"""
+:mod:`config` module
+====================
 
-# Dimensions de l'écran en pixels
-SCREEN_WIDTH = 2560
-SCREEN_HEIGHT = 1440
-MID_X = SCREEN_WIDTH // 2
-MID_Y = SCREEN_HEIGHT // 2
+Configuration module for screen and gaze tracking settings.
 
-# Plage de prédiction du regard en cm
-GAZE_RANGE_CM = 25
+This module defines constants for screen dimensions and gaze prediction range.
+
+:author: Pather Stevenson
+:date: February 2025
+"""
+
+# Screen dimensions in pixels
+SCREEN_WIDTH: int = 2560
+SCREEN_HEIGHT: int = 1440
+MID_X: int = SCREEN_WIDTH // 2
+MID_Y: int = SCREEN_HEIGHT // 2
+
+# Gaze prediction range in cm
+GAZE_RANGE_CM: int = 25
