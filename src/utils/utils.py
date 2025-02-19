@@ -119,3 +119,16 @@ def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
     y_pixel = (GAZE_RANGE_CM - gaze_y_cm) / (2 * GAZE_RANGE_CM) * SCREEN_HEIGHT
     
     return int(x_pixel), int(y_pixel)
+
+def pixels_to_gaze_cm(x_pixel, y_pixel):
+    """
+    Convert pixel coordinates to gaze coordinates in cm relative to screen center.
+    
+    :param x_pixel: X coordinate in pixels
+    :param y_pixel: Y coordinate in pixels
+    :return: (x_cm, y_cm) Gaze coordinates in cm
+    """
+    x_cm = ((x_pixel / SCREEN_WIDTH) * 2 * GAZE_RANGE_CM) - GAZE_RANGE_CM
+    y_cm = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
+    
+    return x_cm, y_cm
