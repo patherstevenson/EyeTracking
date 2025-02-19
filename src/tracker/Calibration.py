@@ -1,9 +1,21 @@
+#!/usr/bin/python3
+# -*- coding: utf-8 -*-
+
+"""
+:mod:`Calibration` module
+=========================
+
+This module handles the calibration process for fine-tuning the gaze tracking model.
+It captures gaze targets using mouse clicks and extracts corresponding features for fine-tuning.
+
+:author: Pather Stevenson
+:date: February 2025
+"""
+
 import cv2
 import mediapipe as mp
-import time
-
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 from utils.utils import pixels_to_gaze_cm
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, CALIBRATION_IMAGE_PATH, CALIBRATION_PTS
@@ -11,20 +23,21 @@ from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, CALIBRATION_IMAGE_PATH, CA
 
 class CalibrationDataset(Dataset):
     """
-    PyTorch Dataset for calibration data.
-    Used to fine-tune the gaze model with user-specific data.
+    PyTorch Dataset for storing calibration data.
+    This dataset is used to fine-tune the gaze tracking model with user-specific gaze samples.
     """
 
-    def __init__(self, calibration_data):
+    def __init__(self, calibration_data: list[tuple[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], tuple[float, float]]]):
         """
         Initializes the dataset.
 
-        :param calibration_data: List of tuples (features, gaze_targets)
-        :type calibration_data: list
+        :param calibration_data: List of tuples (features, gaze_targets).
+                                 Each entry contains extracted features and the corresponding gaze target.
+        :type calibration_data: list[tuple[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], tuple[float, float]]]
         """
         self.data = calibration_data
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the number of samples in the dataset.
 
@@ -33,14 +46,14 @@ class CalibrationDataset(Dataset):
         """
         return len(self.data)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Returns a sample from the dataset.
+        Retrieves a sample from the dataset.
 
         :param idx: Index of the sample.
         :type idx: int
         :return: Tuple (faces, eyes_left, eyes_right, face_grids, gaze_targets).
-        :rtype: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
+        :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
         """
         features, gaze_targets = self.data[idx]
         face_input, left_eye_input, right_eye_input, face_grid_input = features
@@ -60,22 +73,22 @@ class Calibration:
     Uses mouse clicks to capture real gaze targets and extract corresponding features.
     """
 
-    def __init__(self, gaze_tracker):
+    def __init__(self, gaze_tracker: "GazeTracker") -> None:
         """
         Initializes the Calibration object.
 
-        :param webcam: OpenCV VideoCapture object.
-        :param gaze_tracker: Instance of GazeTracker.
+        :param gaze_tracker: Instance of GazeTracker to extract gaze features.
+        :type gaze_tracker: GazeTracker
         """
         self.gaze_tracker = gaze_tracker
-        self.capture_points = []  # Stores calibration data (features, gaze_x, gaze_y)
-        self.margin = 20  # Bounding box margin
-        self.current_target = None  # Latest click position
-        self.window_name = "Calibration Window"
-        self.calibration_done = False
-        self.calibration_image = cv2.imread(CALIBRATION_IMAGE_PATH)  # Load calibration image
-        self.calibration_image = cv2.resize(self.calibration_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+        self.capture_points: list[tuple[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], tuple[float, float]]] = []
+        self.margin: int = 20  # Bounding box margin
+        self.current_target: tuple[int, int] | None = None  # Latest click position
+        self.window_name: str = "Calibration Window"
+        self.calibration_done: bool = False
 
+        # Load and resize the calibration image
+        self.calibration_image = cv2.imread(CALIBRATION_IMAGE_PATH)
         if self.calibration_image is None:
             print(f"Error: Could not load calibration image from {CALIBRATION_IMAGE_PATH}")
             exit(1)
@@ -83,29 +96,34 @@ class Calibration:
         # Resize the calibration image to fit the screen
         self.calibration_image = cv2.resize(self.calibration_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    def _mouse_callback(self, event, x, y, flags, param):
+    def _mouse_callback(self, event: int, x: int, y: int, flags: int, param: any) -> None:
         """
         Mouse click callback function to capture gaze target.
         Converts screen pixel coordinates (x, y) to gaze coordinates in cm.
 
         :param event: Type of mouse event.
+        :type event: int
         :param x: X coordinate of mouse click.
+        :type x: int
         :param y: Y coordinate of mouse click.
+        :type y: int
         :param flags: Additional event parameters.
-        :param param: Extra parameters.
+        :type flags: int
+        :param param: Extra parameters (unused).
+        :type param: any
         """
         if event == cv2.EVENT_LBUTTONDOWN and not self.calibration_done:
             print(f"Click registered at ({x}, {y})")
-            self.current_target = (x, y)  # Store clicked position
+            self.current_target = (x, y)
 
-    def run_calibration(self, webcam):
+    def run_calibration(self, webcam: cv2.VideoCapture) -> CalibrationDataset:
         """
         Runs the calibration process using mouse clicks to capture gaze targets.
         The user freely clicks anywhere on the screen to provide gaze samples.
 
         :param webcam: OpenCV VideoCapture object.
         :type webcam: cv2.VideoCapture
-        :return: Calibration dataset.
+        :return: A CalibrationDataset object containing collected samples.
         :rtype: CalibrationDataset
         """
         print("\nCalibration started. Click anywhere on the screen to provide calibration points.")

@@ -133,9 +133,9 @@ class GazeTracker:
         """
         self.logger.save_data()
 
-    def train(self, dataset: Dataset, epochs: int = 10, learning_rate: float = 1e-4, batch_size: int = 4):
+    def train(self, dataset: Dataset, epochs: int = 10, learning_rate: float = 1e-4, batch_size: int = 4) -> None:
         """
-        Fine-tune the gaze tracking model with a small dataset.
+        Fine-tune the gaze tracking model with a calibration session
 
         :param dataset: A PyTorch Dataset containing new user-specific training samples.
         :param epochs: Number of epochs for fine-tuning.
