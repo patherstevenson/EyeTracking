@@ -16,13 +16,20 @@ for further analysis.
 import os
 import cv2
 import torch
+import torch.nn as nn
+import torch.optim
+import torch.utils.data
+from torch.utils.data import Dataset, DataLoader
+
 import mediapipe as mp
 
 from utils.utils import *
-from utils.config import MID_X, MID_Y
+from utils.config import MID_X, MID_Y, LR, EPOCH, BATCH_SIZE
 
 from .GazeDataLogger import GazeDataLogger
 from .GazeModel import GazeModel
+from .Calibration import Calibration
+
 
 
 class GazeTracker:
@@ -48,6 +55,7 @@ class GazeTracker:
         self._load_model(model_path)
         self.logger = GazeDataLogger()
         self.margin: int = 20
+        self.calibration = Calibration(self)
 
     def _load_model(self, model_path: str) -> None:
         """
@@ -125,6 +133,50 @@ class GazeTracker:
         """
         self.logger.save_data()
 
+    def train(self, dataset: Dataset, epochs: int = 10, learning_rate: float = 1e-4, batch_size: int = 4):
+        """
+        Fine-tune the gaze tracking model with a small dataset.
+
+        :param dataset: A PyTorch Dataset containing new user-specific training samples.
+        :param epochs: Number of epochs for fine-tuning.
+        :param learning_rate: Learning rate for the optimizer.
+        :param batch_size: Batch size for training.
+        """
+        self.model.train()
+        self.model.to(self.device)
+
+        criterion = nn.MSELoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+        for epoch in range(epochs):
+            total_loss = 0
+            for faces, eyes_left, eyes_right, face_grids, gaze_targets in dataloader:
+                
+                faces, eyes_left, eyes_right, face_grids, gaze_targets = (
+                    faces.to(self.device),
+                    eyes_left.to(self.device),
+                    eyes_right.to(self.device),
+                    face_grids.to(self.device),
+                    gaze_targets.to(self.device)
+                )
+                
+                optimizer.zero_grad()
+                
+                predictions = self.model(faces, eyes_left, eyes_right, face_grids)
+                
+                loss = criterion(predictions, gaze_targets)
+                
+                loss.backward()
+                optimizer.step() 
+                total_loss += loss.item()
+            
+            print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(dataloader):.4f}")
+
+        print("Fine-tuning complete.")
+
+
     def extract_features(self, img: torch.Tensor, face_landmarks) -> tuple:
         """
         Extracts facial features from the image using detected landmarks.
@@ -158,13 +210,61 @@ class GazeTracker:
 
         return face_input, left_eye_input, right_eye_input, face_grid_input
 
+    def predict_gaze(self, face_input: torch.Tensor, left_eye_input: torch.Tensor,
+                           right_eye_input: torch.Tensor, face_grid_input: torch.Tensor,) -> tuple[int, int, str]:
+        """
+        Predicts the gaze direction based on the input features.
+        Converts the predicted gaze coordinates from centimeters to pixels
+        and logs the result.
+
+        :param face_input: Processed face image tensor.
+        :type face_input: torch.Tensor
+        :param left_eye_input: Processed left eye image tensor.
+        :type left_eye_input: torch.Tensor
+        :param right_eye_input: Processed right eye image tensor.
+        :type right_eye_input: torch.Tensor
+        :param face_grid_input: Face grid tensor representing spatial positioning.
+        :type face_grid_input: torch.Tensor
+        :return: Tuple containing pixel coordinates (x, y) and the screen position.
+        :rtype: tuple[int, int, str]
+        """
+
+        with torch.no_grad():
+            gaze_prediction = self.model(
+                face_input, left_eye_input, right_eye_input, face_grid_input
+            )
+            gaze_x, gaze_y = gaze_prediction.cpu().numpy().flatten()
+
+            # Convert to pixel coordinates
+            pos_x, pos_y = gaze_cm_to_pixels(gaze_x, gaze_y)
+
+            # Determine the position on the screen
+            position = self._determine_position(pos_x, pos_y)
+            quadrant = self._determine_quadrant(gaze_x, gaze_y)
+
+            # Log data
+            self.logger.log_data(pos_x, pos_y)
+
+            print(
+                f"Gaze Position (cm): ({gaze_x:.2f}, {gaze_y:.2f}) - {quadrant}, "
+                f"Pixels (x,y): ({pos_x}, {pos_y}) - {position}"
+            )
+
+            return pos_x, pos_y, position
+
     def run(self, webcam: cv2.VideoCapture) -> None:
         """
         Runs the gaze tracking loop, capturing frames and processing gaze estimation.
+        Performs calibration and fine-tuning before running the tracking.
 
         :param webcam: OpenCV VideoCapture object.
         :type webcam: cv2.VideoCapture
         """
+        calibration_dataset = self.calibration.run_calibration(webcam)
+
+        print("\nFine-tuning the model with calibration data...")
+        self.train(calibration_dataset, epochs=EPOCH, learning_rate=LR, batch_size=BATCH_SIZE)
+
         with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
             while True:
                 success, img = webcam.read()
