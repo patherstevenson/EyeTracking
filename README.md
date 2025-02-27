@@ -70,6 +70,11 @@ The original model was developed by MIT CSAIL and is presented in the paper:
 
 The model is available at: [GazeCapture GitHub](https://github.com/CSAILVision/GazeCapture).
 
+## Fine-Tuning
+
+
+## 
+
 ## Documentation
 
 We use **Sphinx** to generate project documentation.  

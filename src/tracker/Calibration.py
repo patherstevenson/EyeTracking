@@ -14,6 +14,7 @@ It captures gaze targets using mouse clicks and extracts corresponding features 
 
 import cv2
 import mediapipe as mp
+import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -115,6 +116,50 @@ class Calibration:
         if event == cv2.EVENT_LBUTTONDOWN and not self.calibration_done:
             print(f"Click registered at ({x}, {y})")
             self.current_target = (x, y)
+
+    def evaluate_calibration_accuracy(self) -> tuple[float, float]:
+        """
+        Evaluates the accuracy of the fine-tuned gaze tracking model on calibration points.
+
+        :return: Mean Euclidean distance error and standard deviation in cm.
+        :rtype: tuple[float, float]
+        """
+        if not self.capture_points:
+            print("No calibration data available for evaluation.")
+            return 0.0, 0.0
+
+        total_errors = []
+
+        self.gaze_tracker.model.eval()
+
+        with torch.no_grad():
+            for (face_input, left_eye_input, right_eye_input, face_grid_input), (gaze_x_true, gaze_y_true) in self.capture_points:
+                
+                # Move tensors to device
+                face_input = face_input.to(self.gaze_tracker.device)
+                left_eye_input = left_eye_input.to(self.gaze_tracker.device)
+                right_eye_input = right_eye_input.to(self.gaze_tracker.device)
+                face_grid_input = face_grid_input.to(self.gaze_tracker.device)
+
+                # Model prediction
+                gaze_x_pred, gaze_y_pred = self.gaze_tracker.model(face_input, left_eye_input, right_eye_input, face_grid_input)
+                gaze_x_pred, gaze_y_pred = gaze_x_pred.cpu().numpy().flatten()
+
+                # Compute Euclidean error in cm
+                error = np.sqrt((gaze_x_pred - gaze_x_true) ** 2 + (gaze_y_pred - gaze_y_true) ** 2)
+                total_errors.append(error)
+
+                print(f"True Gaze: ({gaze_x_true:.2f}, {gaze_y_true:.2f}) cm, "
+                      f"Predicted Gaze: ({gaze_x_pred:.2f}, {gaze_y_pred:.2f}) cm, "
+                      f"Error: {error:.2f} cm")
+
+        # Compute mean and standard deviation
+        mean_error = np.mean(total_errors)
+        std_error = np.std(total_errors)
+
+        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm")
+        
+        return mean_error, std_error
 
     def run_calibration(self, webcam: cv2.VideoCapture) -> CalibrationDataset:
         """
