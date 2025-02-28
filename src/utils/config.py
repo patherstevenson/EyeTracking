@@ -27,7 +27,7 @@ GAZE_RANGE_CM: int = 25
 CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calibration_13_pts.png"))
 
 # NB CALIBRATION PTS
-CALIBRATION_PTS: int = 9
+CALIBRATION_PTS: int = 13
 
 # Fine tuning parameters
 LR: float = 1e-4

@@ -127,7 +127,9 @@ class Calibration:
         if not self.capture_points:
             print("No calibration data available for evaluation.")
             return 0.0, 0.0
-
+        
+        print("\nEvaluation of calibration started")
+        
         total_errors = []
 
         self.gaze_tracker.model.eval()
@@ -142,8 +144,9 @@ class Calibration:
                 face_grid_input = face_grid_input.to(self.gaze_tracker.device)
 
                 # Model prediction
-                gaze_x_pred, gaze_y_pred = self.gaze_tracker.model(face_input, left_eye_input, right_eye_input, face_grid_input)
-                gaze_x_pred, gaze_y_pred = gaze_x_pred.cpu().numpy().flatten()
+                gaze_prediction = self.gaze_tracker.model(face_input, left_eye_input, right_eye_input, face_grid_input)
+                gaze_x_pred, gaze_y_pred = gaze_prediction.cpu().numpy().flatten()
+
 
                 # Compute Euclidean error in cm
                 error = np.sqrt((gaze_x_pred - gaze_x_true) ** 2 + (gaze_y_pred - gaze_y_true) ** 2)
@@ -157,7 +160,7 @@ class Calibration:
         mean_error = np.mean(total_errors)
         std_error = np.std(total_errors)
 
-        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm")
+        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm\n")
         
         return mean_error, std_error
 
@@ -171,7 +174,7 @@ class Calibration:
         :return: A CalibrationDataset object containing collected samples.
         :rtype: CalibrationDataset
         """
-        print("\nCalibration started. Click anywhere on the screen to provide calibration points.")
+        print("\nCalibration started")
 
         cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)
         cv2.setMouseCallback(self.window_name, self._mouse_callback)
@@ -208,6 +211,6 @@ class Calibration:
                     self.calibration_done = True
 
         cv2.destroyWindow(self.window_name)
-        print("Calibration completed.")
+        print("\nCalibration completed.")
 
         return CalibrationDataset(self.capture_points)

@@ -265,6 +265,9 @@ class GazeTracker:
         print("\nFine-tuning the model with calibration data...")
         self.train(calibration_dataset, epochs=EPOCH, learning_rate=LR, batch_size=BATCH_SIZE)
 
+        # start eval of the proccesed calibration
+        mean_error, std_error = self.calibration.evaluate_calibration_accuracy()
+
         with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
             while True:
                 success, img = webcam.read()

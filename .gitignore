@@ -4,3 +4,4 @@ __pycache__
 doc/
 .vscode
 .ipynb_checkpoints/
+.pytest_cache
