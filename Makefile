@@ -1,4 +1,4 @@
-PROJECT=PFE Eye Tracking
+PROJECT=EyeTracking
 AUTHOR=Pather Stevenson, Deise Santana Maia
 PY3=python3
 PYTEST=pytest
