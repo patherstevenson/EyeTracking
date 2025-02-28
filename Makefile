@@ -16,7 +16,7 @@ run:
 	$(PY3) $(MAIN)
 
 test:
-	$(PYTEST) $(TEST_PATH) -vv
+	$(PYTEST) $(TEST_PATH) -vv -W ignore::DeprecationWarning
 
 lib:
 	pip install -r $(LIBS)
