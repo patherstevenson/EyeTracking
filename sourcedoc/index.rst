@@ -120,6 +120,39 @@ making the system suitable for various hardware configurations, including consum
 Getting Started
 ===============
 
+Environment Setup
+-----------------
+
+We use **Conda** to manage the development environment.  
+To create and activate the environment, run:
+
+.. code-block:: bash
+
+   conda create -n pfe python=3.12
+   conda activate pfe
+   
+Dependency Installation
+-----------------------
+
+Before running the program, install the required dependencies using:
+
+.. code-block:: bash
+
+   make lib
+
+This will automatically install all necessary Python packages.
+
+Running Tests
+-------------
+
+To ensure everything is working correctly, you can run the test suite with:
+
+.. code-block:: bash
+
+   make test
+
+This will execute unit tests to validate the functionality of the project.
+
 Launch the program
 ------------------
 
@@ -137,38 +170,32 @@ including the webcam. To bypass this limitation, you can use **MJPEG Streamer** 
 
 - **Step 1: Install MJPEG Streamer** :
 
-**MJPEG Streamer** is available on the **Windows Store** and can also be downloaded from various sources on the Internet.  
-You can install it on your host system (Windows, Linux, or macOS) and start streaming your webcam.
+	**MJPEG Streamer** is available on the **Windows Store** and can also be downloaded from various sources on the Internet.  
+	You can install it on your host system (Windows, Linux, or macOS) and start streaming your webcam.
 
-To run MJPEG Streamer, use the following command:
+	The program will automatically **use the video stream** instead of trying to access a local USB webcam.
 
-.. code-block:: bash
+	**Example MJPEG Streamer Interface** :
 
-   mjpg_streamer -i "input_uvc.so" -o "output_http.so -w ./www -p 8000"
+	Below is an example of the MJPEG Streamer web interface when running correctly:
 
-This will start a webcam stream accessible via **http://your_ip:8000/**.
+	.. image:: ../images/mjpeg_streamer.png
+	   :alt: MJPEG Streamer Example
+	   :align: center
+	   :width: 70%
+
+	This will start a webcam stream accessible via **http://your_ip:8000/**.
 
 - **Step 2: Set the WEBCAM_URL Environment Variable** :
 
-Once the stream is running, define the environment variable **`WEBCAM_URL`**  
-so that the program can use the external webcam feed:
+	Once the stream is running, define the environment variable **`WEBCAM_URL`**  
+	so that the program can use the external webcam feed:
 
-.. code-block:: bash
+	.. code-block:: bash
 
-   export WEBCAM_URL=http://74.229.179.101:8000/
+	   export WEBCAM_URL=http://74.229.179.101:8000/
 
-Replace `74.229.179.101:8000` with the actual **IP address and port** of your MJPEG Streamer.
-
-The program will automatically **use the video stream** instead of trying to access a local USB webcam.
-
-- **Example MJPEG Streamer Interface** :
-
-Below is an example of the MJPEG Streamer web interface when running correctly:
-
-.. image:: ../images/mjpeg_streamer.png
-   :alt: MJPEG Streamer Example
-   :align: center
-   :width: 70%
+	Replace `74.229.179.101:8000` with the actual **IP address and port** of your MJPEG Streamer.
 
 - After setting up the webcam stream, you can now launch the program as usual :
 
