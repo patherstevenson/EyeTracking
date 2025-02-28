@@ -38,17 +38,44 @@ $ make lib
 ## Project Structure
 
 ```
-PFE-Eye-Tracking/
-│── notebooks/           # Jupyter notebooks
-│── src/                 # Source code
-│   ├── models/          # ...
-│   ├── dot_tracking/    # ...
-│   ├── mat/             # ...
-│── tests/               # Unit tests
-│── docs/                # Documentation (Sphinx)
-│── README.md            # Project documentation
-│── requirements.txt     # Python dependencies
-│── Makefile             # Commands for installation, testing, and docs
+EyeTracking/
+├── LICENSE                     # License for the project
+├── Makefile                    # Commands for installation, testing, and documentation
+├── README.md                   # Main project documentation (overview, installation, usage)
+├── conf.py                     # Sphinx configuration for documentation
+├── images/                     # Images used in documentation
+├── notebooks/                  # Jupyter Notebooks for visualization and experiments
+├── requirements.txt            # List of dependencies for setting up the project
+├── sourcedoc/                  # Sphinx-generated documentation sources
+├── src/                        # Main source code directory
+│   ├── experiments/            # Saved gaze tracking experiment results
+│   │   ├── *.pkl               # Pickle files containing gaze tracking data
+│   ├── main.py                 # Main script for running gaze tracking
+│   ├── mat/                    # Precomputed mean face and eye datasets
+│   │   ├── mean_face_224.mat   # Mean face data
+│   │   ├── mean_left_224.mat   # Mean left eye data
+│   │   └── mean_right_224.mat  # Mean right eye data
+│   ├── models/                 # Pre-trained and fine-tuned gaze tracking models
+│   │   └── checkpoint.pth.tar  # Saved model checkpoint
+│   ├── tracker/                # Core modules for gaze tracking
+│   │   ├── Calibration.py      # Calibration process for improving model accuracy
+│   │   ├── GazeDataLogger.py   # Handles logging of gaze tracking data
+│   │   ├── GazeModel.py        # The deep learning model for gaze prediction
+│   │   ├── GazeTracker.py      # Main gaze tracking logic
+│   └── utils/                  # Utility functions and configurations
+│       ├── calibration_13_pts.png  # Calibration grid (13 points)
+│       ├── calibration_5_pts.png   # Calibration grid (5 points)
+│       ├── calibration_9_pts.png   # Calibration grid (9 points)
+│       ├── config.py           # Configuration parameters (screen size, calibration settings)
+│       ├── utils.py            # Helper functions for preprocessing and gaze tracking
+├── tests/                      # Unit tests for the project
+│   ├── test_Calibration.py     # Tests for the Calibration module
+│   ├── test_GazeDataLogger.py  # Tests for GazeDataLogger
+│   ├── test_GazeModel.py       # Tests for GazeModel
+│   ├── test_GazeTracker.py     # Tests for GazeTracker
+│   ├── test_utils.py           # Tests for utility functions
+│   ├── __pycache__/            # Compiled Python cache files (ignored)
+└── docs/                       # Sphinx documentation (to be generated)
 ```
 
 ## Installation & Dependencies
@@ -59,21 +86,13 @@ Install project dependencies:
 $ make lib
 ```
 
-## Model
+## VM User Webcam
 
-We use the pre-trained **GazeCapture** model for eye tracking, based on deep learning techniques.  
-The original model was developed by MIT CSAIL and is presented in the paper:  
+If you are using a **virtual machine (VM)** such as **WSL2**, please refer to the subsection  
+[`Running on a Virtual Machine (e.g., WSL2)`](docs/_build/html/index.html) in the generated documentation.
 
-> **Eye Tracking for Everyone**  
-> Krafka et al. (2016)  
-> [📄 Read on arXiv](https://arxiv.org/abs/1606.05814)
-
-The model is available at: [GazeCapture GitHub](https://github.com/CSAILVision/GazeCapture).
-
-## Fine-Tuning
-
-
-## 
+This section provides detailed instructions on how to stream your webcam using **MJPEG Streamer**  
+and configure the environment variable `WEBCAM_URL` to enable webcam support in the project.
 
 ## Documentation
 
@@ -85,6 +104,8 @@ $ make doc
 ```
 
 The generated HTML files will be available in the `docs/_build/html/` directory.
+
+The complete presentation of the project will be avaible in the `docs/_build/html/index.html` page.
 
 ## Testing
 
