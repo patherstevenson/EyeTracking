@@ -37,8 +37,7 @@ def test_evaluate_calibration_accuracy():
     mock_tracker.device = "cpu"
     mock_tracker.model = MagicMock()
     mock_tracker.model.eval = MagicMock()
-    mock_tracker.model.side_effect = lambda *args: (torch.tensor([[0.0, 0.0]]), torch.tensor([[0.0, 0.0]]))
-
+    mock_tracker.model.side_effect = lambda *args: torch.tensor([[0.0, 0.0]])
 
     calibration = Calibration(mock_tracker)
     calibration.capture_points = [
