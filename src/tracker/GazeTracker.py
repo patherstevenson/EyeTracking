@@ -46,7 +46,6 @@ class GazeTracker:
         :type model_path: str, optional
         """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"\n------\nDevice used : {self.device}\n------\n")
 
         if model_path is None:
             model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../models/checkpoint.pth.tar"))
@@ -65,6 +64,8 @@ class GazeTracker:
         :param model_path: Path to the model checkpoint.
         :type model_path: str
         """
+        print(f"\n-----------------\nDevice : {torch.cuda.get_device_name(torch.cuda.current_device())}\n-----------------\n")
+
         checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
         self.model.load_state_dict(checkpoint['state_dict'], strict=False)
         self.model.to(self.device)
