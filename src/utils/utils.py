@@ -69,11 +69,11 @@ def draw_bounding_boxes(frame, face_bbox=None, left_eye_bbox=None, right_eye_bbo
     """
     Draw the given bouding boxes on webcam
 
-    :param frame: Image capturée par la webcam (numpy array).
-    :param face_bbox: Coordonnées (x, y, w, h) pour le visage.
-    :param left_eye_bbox: Coordonnées (x, y, w, h) pour l'œil gauche.
-    :param right_eye_bbox: Coordonnées (x, y, w, h) pour l'œil droit.
-    :return: Image annotée avec les bounding boxes.
+    :param frame:  Captured image from the webcam
+    :param face_bbox: Coordinates (x, y, w, h) for the face
+    :param left_eye_bbox: Coordinates (x, y, w, h) for the left eye
+    :param right_eye_bbox: Coordinates (x, y, w, h) for the right eye
+    :return: The given caputured image with the bouding boxes drawed on it
     """
     FACE_COLOR = (0, 255, 0)   # Green
     EYE_COLOR = (255, 0, 0)    # Blue
