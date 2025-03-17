@@ -176,7 +176,7 @@ class Calibration:
         """
         print("\nCalibration started")
 
-        cv2.namedWindow(self.window_name, cv2.WND_PROP_FULLSCREEN)
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(self.window_name, self._mouse_callback)
 
         with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
