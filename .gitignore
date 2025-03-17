@@ -5,3 +5,4 @@ doc/
 .vscode
 .ipynb_checkpoints/
 .pytest_cache
+.conda
