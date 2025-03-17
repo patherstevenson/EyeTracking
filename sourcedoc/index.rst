@@ -243,7 +243,7 @@ Before running the system, parameters can be adjusted in **`src/utils/config.py`
    MID_Y: int = SCREEN_HEIGHT // 2
 
    # Path to the calibration image
-   CALIBRATION_IMAGE_PATH = "path/to/calibration_image.png"CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calibration_13_pts.png"))
+   CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calib_13/calibration_13_pts.png"))
 
    # Number of calibration points
    CALIBRATION_PTS: int = 13
@@ -274,19 +274,19 @@ Here are **examples of calibration grids**:
 
 **5-Point Calibration**:
   
-.. image:: ../src/utils/calibration_5_pts.png
+.. image:: ../src/utils/calib_5/calibration_5_pts.png
    :width: 60%
    :align: center
 
 **9-Point Calibration**:
   
-.. image:: ../src/utils/calibration_9_pts.png
+.. image:: ../src/utils/calib_9/calibration_9_pts.png
    :width: 60%
    :align: center
 
 **13-Point Calibration (Default)**:
   
-.. image:: ../src/utils/calibration_13_pts.png
+.. image:: ../src/utils/calib_13/calibration_13_pts.png
    :width: 60%
    :align: center
 
