@@ -65,6 +65,37 @@ def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]],
     y_max = min(SCREEN_HEIGHT, max(pt[1] for pt in coords) + y_margin)
     return x_min, y_min, x_max, y_max
 
+def draw_bounding_boxes(frame, face_bbox=None, left_eye_bbox=None, right_eye_bbox=None):
+    """
+    Draw the given bouding boxes on webcam
+
+    :param frame: Image capturée par la webcam (numpy array).
+    :param face_bbox: Coordonnées (x, y, w, h) pour le visage.
+    :param left_eye_bbox: Coordonnées (x, y, w, h) pour l'œil gauche.
+    :param right_eye_bbox: Coordonnées (x, y, w, h) pour l'œil droit.
+    :return: Image annotée avec les bounding boxes.
+    """
+    FACE_COLOR = (0, 255, 0)   # Green
+    EYE_COLOR = (255, 0, 0)    # Blue
+
+    # face
+    if face_bbox is not None:
+        x, y, w, h = face_bbox
+        cv2.rectangle(frame, (x, y), (w,h), FACE_COLOR, 2)
+
+    # left eye
+    if left_eye_bbox is not None:
+        x, y, w, h = left_eye_bbox
+        cv2.rectangle(frame, (x, y), (w,h), EYE_COLOR, 2)
+
+    # right eye 
+    if right_eye_bbox is not None:
+        x, y, w, h = right_eye_bbox
+        cv2.rectangle(frame, (x, y), (w,h), EYE_COLOR, 2)
+
+    return frame
+
+
 def preprocess_roi(roi: np.ndarray, size: tuple[int, int] = (224, 224)) -> np.ndarray:
     """
     Preprocesses an image region of interest (ROI) for model input.
@@ -100,7 +131,7 @@ def generate_face_grid(face_bbox: tuple[int, int, int, int],
     grid_y = int((face_bbox[1] / image_shape[0]) * grid_size)
     grid_w = int(((face_bbox[2] - face_bbox[0]) / image_shape[1]) * grid_size)
     grid_h = int(((face_bbox[3] - face_bbox[1]) / image_shape[0]) * grid_size)
-    
+
     face_grid[grid_y:grid_y + grid_h, grid_x:grid_x + grid_w] = 1
     return face_grid.flatten()
 
@@ -117,18 +148,18 @@ def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
     """
     x_pixel = (GAZE_RANGE_CM + gaze_x_cm) / (2 * GAZE_RANGE_CM) * SCREEN_WIDTH
     y_pixel = (GAZE_RANGE_CM - gaze_y_cm) / (2 * GAZE_RANGE_CM) * SCREEN_HEIGHT
-    
+
     return int(x_pixel), int(y_pixel)
 
 def pixels_to_gaze_cm(x_pixel, y_pixel):
     """
     Convert pixel coordinates to gaze coordinates in cm relative to screen center.
-    
+
     :param x_pixel: X coordinate in pixels
     :param y_pixel: Y coordinate in pixels
     :return: (x_cm, y_cm) Gaze coordinates in cm
     """
     x_cm = ((x_pixel / SCREEN_WIDTH) * 2 * GAZE_RANGE_CM) - GAZE_RANGE_CM
     y_cm = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
-    
+
     return x_cm, y_cm

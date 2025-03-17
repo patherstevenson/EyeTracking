@@ -153,7 +153,7 @@ class GazeTracker:
         for epoch in range(epochs):
             total_loss = 0
             for faces, eyes_left, eyes_right, face_grids, gaze_targets in dataloader:
-                
+
                 faces, eyes_left, eyes_right, face_grids, gaze_targets = (
                     faces.to(self.device),
                     eyes_left.to(self.device),
@@ -161,17 +161,17 @@ class GazeTracker:
                     face_grids.to(self.device),
                     gaze_targets.to(self.device)
                 )
-                
+
                 optimizer.zero_grad()
-                
+
                 predictions = self.model(faces, eyes_left, eyes_right, face_grids)
-                
+
                 loss = criterion(predictions, gaze_targets)
-                
+
                 loss.backward()
                 optimizer.step() 
                 total_loss += loss.item()
-            
+
             print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(dataloader):.4f}")
 
         print("Fine-tuning complete.")
@@ -194,6 +194,9 @@ class GazeTracker:
         left_eye_bbox = get_bounding_box(LEFT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
         right_eye_bbox = get_bounding_box(RIGHT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
         face_bbox = get_bounding_box(FACE_OVAL, landmarks, x_margin=self.margin, y_margin=self.margin)
+
+        # Draw bounding box rectangles
+        draw_bounding_boxes(img, face_bbox=face_bbox, left_eye_bbox=left_eye_bbox, right_eye_bbox=right_eye_bbox)
 
         # Preprocess regions of interest
         left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
