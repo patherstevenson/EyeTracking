@@ -15,7 +15,7 @@ landmark extraction, and coordinate transformation.
 import cv2
 import numpy as np
 import scipy.io as sio
-from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM
+from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
 # MediaPipe marker IDs for facial landmarks
 LEFT_EYE = [33, 133]
@@ -163,3 +163,9 @@ def pixels_to_gaze_cm(x_pixel, y_pixel):
     y_cm = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
 
     return x_cm, y_cm
+
+def euclidan_distance_radius(pt1, pt2, radius):
+    """
+    Check if two given point have an euclidan distance less than given
+    """
+    return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2) <= radius

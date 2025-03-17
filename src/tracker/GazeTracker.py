@@ -96,7 +96,9 @@ class GazeTracker:
         :return: Position quadrant of the gaze.
         :rtype: str
         """
-        if pos_x < MID_X and pos_y < MID_Y:
+        if euclidan_distance_radius(pt1=(pos_x,pos_y), pt2=(MID_X,MID_Y), radius=SCREEN_HEIGHT//4):
+            return "Center"
+        elif pos_x < MID_X and pos_y < MID_Y:
             return "Top Left"
         elif pos_x > MID_X and pos_y < MID_Y:
             return "Top Right"
@@ -105,7 +107,7 @@ class GazeTracker:
         elif pos_x > MID_X and pos_y > MID_Y:
             return "Bottom Right"
         else:
-            return "Center"
+            "None"
 
     def _determine_quadrant(self, gaze_x: float, gaze_y: float) -> str:
         """
