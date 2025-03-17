@@ -15,8 +15,8 @@ This module defines constants for screen dimensions and gaze prediction range.
 import os
 
 # Screen dimensions in pixels
-SCREEN_WIDTH: int = 2560
-SCREEN_HEIGHT: int = 1440
+SCREEN_WIDTH: int = 1920
+SCREEN_HEIGHT: int = 1080
 MID_X: int = SCREEN_WIDTH // 2
 MID_Y: int = SCREEN_HEIGHT // 2
 
