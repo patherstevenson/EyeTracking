@@ -15,6 +15,8 @@ landmark extraction, and coordinate transformation.
 import cv2
 import numpy as np
 import scipy.io as sio
+from typing import Optional, Tuple
+
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
 # MediaPipe marker IDs for facial landmarks
@@ -65,33 +67,36 @@ def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]],
     y_max = min(SCREEN_HEIGHT, max(pt[1] for pt in coords) + y_margin)
     return x_min, y_min, x_max, y_max
 
-def draw_bounding_boxes(frame, face_bbox=None, left_eye_bbox=None, right_eye_bbox=None):
+def draw_bounding_boxes(frame: np.ndarray, face_bbox: Optional[Tuple[int, int, int, int]] = None,
+    left_eye_bbox: Optional[Tuple[int, int, int, int]] = None,
+    right_eye_bbox: Optional[Tuple[int, int, int, int]] = None) -> np.ndarray:
     """
-    Draw the given bouding boxes on webcam
+    Draws the given bounding boxes on a webcam frame.
 
-    :param frame:  Captured image from the webcam
-    :param face_bbox: Coordinates (x, y, w, h) for the face
-    :param left_eye_bbox: Coordinates (x, y, w, h) for the left eye
-    :param right_eye_bbox: Coordinates (x, y, w, h) for the right eye
-    :return: The given caputured image with the bouding boxes drawed on it
+    :param frame: Captured image from the webcam (NumPy array).
+    :param face_bbox: Optional; Tuple (x, y, w, h) representing the face bounding box.
+    :param left_eye_bbox: Optional; Tuple (x, y, w, h) for the left eye bounding box.
+    :param right_eye_bbox: Optional; Tuple (x, y, w, h) for the right eye bounding box.
+    :return: The captured image with the bounding boxes drawn on it.
     """
+    # Colors (B, G, R)
     FACE_COLOR = (0, 255, 0)   # Green
     EYE_COLOR = (255, 0, 0)    # Blue
 
-    # face
+    # Draw the bounding box for the face
     if face_bbox is not None:
         x, y, w, h = face_bbox
-        cv2.rectangle(frame, (x, y), (w,h), FACE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), FACE_COLOR, 2)
 
-    # left eye
+    # Draw the bounding box for the left eye
     if left_eye_bbox is not None:
         x, y, w, h = left_eye_bbox
-        cv2.rectangle(frame, (x, y), (w,h), EYE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), EYE_COLOR, 2)
 
-    # right eye 
+    # Draw the bounding box for the right eye
     if right_eye_bbox is not None:
         x, y, w, h = right_eye_bbox
-        cv2.rectangle(frame, (x, y), (w,h), EYE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (x + w, y + h), EYE_COLOR, 2)
 
     return frame
 
@@ -151,7 +156,7 @@ def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
 
     return int(x_pixel), int(y_pixel)
 
-def pixels_to_gaze_cm(x_pixel, y_pixel):
+def pixels_to_gaze_cm(x_pixel: int, y_pixel: int) -> tuple[float, float]:
     """
     Convert pixel coordinates to gaze coordinates in cm relative to screen center.
 
@@ -159,13 +164,18 @@ def pixels_to_gaze_cm(x_pixel, y_pixel):
     :param y_pixel: Y coordinate in pixels
     :return: (x_cm, y_cm) Gaze coordinates in cm
     """
-    x_cm = ((x_pixel / SCREEN_WIDTH) * 2 * GAZE_RANGE_CM) - GAZE_RANGE_CM
-    y_cm = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
+    x_cm: float = ((x_pixel / SCREEN_WIDTH) * 2 * GAZE_RANGE_CM) - GAZE_RANGE_CM
+    y_cm: float = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
 
     return x_cm, y_cm
 
-def euclidan_distance_radius(pt1, pt2, radius):
+def euclidan_distance_radius(pt1: tuple[float, float], pt2: tuple[float, float], radius: float) -> bool:
     """
-    Check if two given point have an euclidan distance less than given
+    Check if the Euclidean distance between two points is less than or equal to a given radius.
+
+    :param pt1: (x1, y1) First point in cm
+    :param pt2: (x2, y2) Second point in cm
+    :param radius: Maximum allowable distance in cm
+    :return: True if the distance between pt1 and pt2 is less than or equal to radius, otherwise False.
     """
-    return np.sqrt((pt1[0] - pt2[0]) ** 2 + (pt1[1] - pt2[1]) ** 2) <= radius
+    return np.linalg.norm(np.array(pt1) - np.array(pt2)) <= radius
