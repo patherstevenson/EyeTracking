@@ -261,6 +261,7 @@ Before running the system, parameters can be adjusted in **`src/utils/config.py`
 
 - `GAZE_RANGE_CM = 25` is fixed and **must not be changed**.
 - You can modify `CALIBRATION_PTS` to set the number of calibration points (e.g., 5, 9, or 13).
+- Also you must indicate your screen width and height (SCREEN_WIDTH, SCREEN_HEIGHT)
 - **Fine-tuning hyperparameters (`LR`, `EPOCH`, `BATCH_SIZE`) can be adjusted for better results.**
 
 Calibration Process
