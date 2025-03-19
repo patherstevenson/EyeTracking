@@ -20,14 +20,6 @@ def test_gaze_tracker_init():
     assert isinstance(tracker.model, GazeModel)
     assert isinstance(tracker.logger, GazeDataLogger)
     assert str(tracker.device) in ["cpu", "cuda"]
-    
-    assert isinstance(tracker.model, GazeModel)
-    assert isinstance(tracker.logger, GazeDataLogger)
-    assert str(tracker.device) in ["cpu", "cuda"]
-    
-    assert isinstance(tracker.model, GazeModel)
-    assert isinstance(tracker.logger, GazeDataLogger)
-    assert str(tracker.device) in ["cpu", "cuda"]
 
 # Test _determine_position and _determine_quadrant
 def test_gaze_tracker_determine_position():
