@@ -104,6 +104,10 @@ It leverages a **convolutional neural network (CNN)** to process image inputs an
   
     - The model contains approximately **10-15 million trainable parameters**.
 
+.. image:: ../images/model.png
+   :width: 60%
+   :align: center
+
 Model Adaptation and Performance Considerations
 -----------------------------------------------
 
@@ -300,13 +304,18 @@ At this stage, the **training process** is launched:
 
 .. code-block:: text
 
-   Fine-tuning the model with calibration data...
-   Epoch 1/10, Loss: 92.2870
-   Epoch 2/10, Loss: 45.7904
-   Epoch 3/10, Loss: 26.5797
-   Epoch 4/10, Loss: 15.9051
-   Epoch 5/10, Loss: 13.1244
-   Fine-tuning complete.
+	Fine-tuning the model with calibration data...
+	Epoch 1/10, Loss: 190.7853
+	Epoch 2/10, Loss: 77.8408
+	Epoch 3/10, Loss: 39.9431
+	Epoch 4/10, Loss: 17.7433
+	Epoch 5/10, Loss: 13.6163
+	Epoch 6/10, Loss: 9.1816
+	Epoch 7/10, Loss: 4.7022
+	Epoch 8/10, Loss: 2.6504
+	Epoch 9/10, Loss: 2.5419
+	Epoch 10/10, Loss: 1.7676
+	Fine-tuning complete.
 
 **Once fine-tuned**, the model performs better for the current session.
 
