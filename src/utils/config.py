@@ -24,7 +24,7 @@ MID_Y: int = SCREEN_HEIGHT // 2
 GAZE_RANGE_CM: int = 25
 
 # Path to the calibration image
-CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calib_13/calibration_13_pts.png"))
+CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calib_13/calibration_13_pts_0.png"))
 
 # NB CALIBRATION PTS
 CALIBRATION_PTS: int = 13

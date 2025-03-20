@@ -247,7 +247,7 @@ Before running the system, parameters can be adjusted in **`src/utils/config.py`
    MID_Y: int = SCREEN_HEIGHT // 2
 
    # Path to the calibration image
-   CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calib_13/calibration_13_pts.png"))
+   CALIBRATION_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "calib_13/calibration_13_pts_0.png"))
 
    # Number of calibration points
    CALIBRATION_PTS: int = 13
