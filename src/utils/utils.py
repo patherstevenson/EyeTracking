@@ -15,7 +15,7 @@ landmark extraction, and coordinate transformation.
 import cv2
 import numpy as np
 import scipy.io as sio
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
@@ -179,3 +179,25 @@ def euclidan_distance_radius(pt1: tuple[float, float], pt2: tuple[float, float],
     :return: True if the distance between pt1 and pt2 is less than or equal to radius, otherwise False.
     """
     return np.linalg.norm(np.array(pt1) - np.array(pt2)) <= radius
+
+def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
+    """
+    Returns the numbered calibration points as a dictionary {index: (x, y)}.
+    
+    :return: Dictionary with keys as indices (0-12) and values as (x, y) tuples.
+    """
+    return {
+        0:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.1)),
+        1:  (int(SCREEN_WIDTH * 0.25) , int(SCREEN_HEIGHT * 0.25)),
+        2:  (int(SCREEN_WIDTH * 0.5) , int(SCREEN_HEIGHT * 0.1)),
+        3:  (int(SCREEN_WIDTH * 0.75) , int(SCREEN_HEIGHT * 0.25)),
+        4:  (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.1)),
+        5:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.5)),
+        6:  (MID_X, MID_Y),
+        7:  (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.5)),
+        8:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.9)),
+        9:  (int(SCREEN_WIDTH * 0.25) , int(SCREEN_HEIGHT * 0.75)),
+        10: (int(SCREEN_WIDTH * 0.5) , int(SCREEN_HEIGHT * 0.9)),
+        11: (int(SCREEN_WIDTH * 0.75) , int(SCREEN_HEIGHT * 0.75)),
+        12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
+    }
