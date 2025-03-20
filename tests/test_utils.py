@@ -61,21 +61,10 @@ def test_pixels_to_gaze_cm():
     ((0.0, 0.0), (0.5, 0.5), 1.0, True),   # Distance = 0.707, less than the radius
 ])
 def test_euclidan_distance_radius(pt1, pt2, radius, expected):
-    """
-    Test whether the function correctly determines if the Euclidean distance between two points is within a given radius.
-    """
     assert euclidan_distance_radius(pt1, pt2, radius) == expected
 
 ### Test draw_bounding_boxes
 def test_draw_bounding_boxes():
-    """
-    Test if draw_bounding_boxes correctly draws bounding boxes on the given frame.
-
-    The test:
-    - Creates a blank image (480x640)
-    - Draws bounding boxes for the face, left eye, and right eye
-    - Checks if the pixels in the expected bounding box areas have changed
-    """
     # Create a blank black image (480x640)
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
 
@@ -118,10 +107,6 @@ EXPECTED_CALIBRATION_POINTS = {
 }
 
 def test_get_numbered_calibration_points():
-    """
-    Test if `get_numbered_calibration_points` returns the correct calibration points
-    for a given screen resolution.
-    """
     # Mock screen dimensions
     global SCREEN_WIDTH, SCREEN_HEIGHT, MID_X, MID_Y
     SCREEN_WIDTH = TEST_SCREEN_WIDTH
