@@ -96,3 +96,49 @@ def test_draw_bounding_boxes():
 
     x, y, w, h = right_eye_bbox
     assert np.any(modified_frame[y:y+h, x:x+w] != frame[y:y+h, x:x+w]), "Right eye bounding box not drawn correctly"
+    
+    
+TEST_SCREEN_WIDTH = 1920
+TEST_SCREEN_HEIGHT = 1080
+
+EXPECTED_CALIBRATION_POINTS = {
+    0:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.1)),
+    1:  (int(TEST_SCREEN_WIDTH * 0.25), int(TEST_SCREEN_HEIGHT * 0.25)),
+    2:  (int(TEST_SCREEN_WIDTH * 0.5), int(TEST_SCREEN_HEIGHT * 0.1)),
+    3:  (int(TEST_SCREEN_WIDTH * 0.75), int(TEST_SCREEN_HEIGHT * 0.25)),
+    4:  (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.1)),
+    5:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.5)),
+    6:  (TEST_SCREEN_WIDTH // 2, TEST_SCREEN_HEIGHT // 2),  # MID_X, MID_Y
+    7:  (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.5)),
+    8:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.9)),
+    9:  (int(TEST_SCREEN_WIDTH * 0.25), int(TEST_SCREEN_HEIGHT * 0.75)),
+    10: (int(TEST_SCREEN_WIDTH * 0.5), int(TEST_SCREEN_HEIGHT * 0.9)),
+    11: (int(TEST_SCREEN_WIDTH * 0.75), int(TEST_SCREEN_HEIGHT * 0.75)),
+    12: (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.9)),
+}
+
+def test_get_numbered_calibration_points():
+    """
+    Test if `get_numbered_calibration_points` returns the correct calibration points
+    for a given screen resolution.
+    """
+    # Mock screen dimensions
+    global SCREEN_WIDTH, SCREEN_HEIGHT, MID_X, MID_Y
+    SCREEN_WIDTH = TEST_SCREEN_WIDTH
+    SCREEN_HEIGHT = TEST_SCREEN_HEIGHT
+    MID_X = SCREEN_WIDTH // 2
+    MID_Y = SCREEN_HEIGHT // 2
+
+    # Compute the calibration points
+    calibration_points = get_numbered_calibration_points()
+
+    # Verify the output is a dictionary
+    assert isinstance(calibration_points, dict), "Output should be a dictionary"
+
+    # Verify that the dictionary has exactly 13 points
+    assert len(calibration_points) == 13, "There should be exactly 13 calibration points"
+
+    # Check each expected point
+    for key, expected_value in EXPECTED_CALIBRATION_POINTS.items():
+        assert key in calibration_points, f"Missing key {key} in calibration points"
+        assert calibration_points[key] == expected_value, f"Point {key} is incorrect: expected {expected_value}, got {calibration_points[key]}"
