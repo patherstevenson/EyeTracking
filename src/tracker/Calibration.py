@@ -18,7 +18,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from utils.utils import pixels_to_gaze_cm
+from utils.utils import pixels_to_gaze_cm, get_numbered_calibration_points, euclidan_distance_radius
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, CALIBRATION_IMAGE_PATH, CALIBRATION_PTS
 
 
@@ -87,7 +87,8 @@ class Calibration:
         self.current_target: tuple[int, int] | None = None  # Latest click position
         self.window_name: str = "Calibration Window"
         self.calibration_done: bool = False
-
+        self.calibration_points = get_numbered_calibration_points()
+        
         # Load and resize the calibration image
         self.calibration_image = cv2.imread(CALIBRATION_IMAGE_PATH)
         if self.calibration_image is None:
@@ -99,8 +100,8 @@ class Calibration:
 
     def _mouse_callback(self, event: int, x: int, y: int, flags: int, param: any) -> None:
         """
-        Mouse click callback function to capture gaze target.
-        Converts screen pixel coordinates (x, y) to gaze coordinates in cm.
+        Mouse click callback function to capture gaze target in a specific order.
+        The user must click on the calibration points sequentially from 0 to 12.
 
         :param event: Type of mouse event.
         :type event: int
@@ -114,8 +115,29 @@ class Calibration:
         :type param: any
         """
         if event == cv2.EVENT_LBUTTONDOWN and not self.calibration_done:
-            print(f"Click registered at ({x}, {y})")
-            self.current_target = (x, y)
+            
+            # The next expected point
+            expected_point = self.calibration_points[self.current_index] 
+            
+            if euclidan_distance_radius((x, y), expected_point, SCREEN_WIDTH // 32):
+                print(f"Correct click at point {self.current_index} ({x}, {y})")
+                
+                self.current_target = (x, y)
+
+                # Load the next calibration image
+                self.current_index += 1
+                if self.current_index < len(self.calibration_points):
+                    new_image_path = CALIBRATION_IMAGE_PATH.rstrip(f"{self.current_index - 1}.png") + f"{self.current_index}.png"
+                    self.calibration_image = cv2.imread(new_image_path)
+
+                    if self.calibration_image is None:
+                        print(f"Error: Could not load {new_image_path}")
+                        exit(1)
+                    self.calibration_image = cv2.resize(self.calibration_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+                else:
+                    self.calibration_done = True
+            else:
+                print(f"Incorrect click at ({x}, {y}). Please click on point {self.current_index}!")
 
     def evaluate_calibration_accuracy(self) -> tuple[float, float]:
         """
@@ -149,7 +171,7 @@ class Calibration:
 
 
                 # Compute Euclidean error in cm
-                error = np.sqrt((gaze_x_pred - gaze_x_true) ** 2 + (gaze_y_pred - gaze_y_true) ** 2)
+                error =  np.linalg.norm(np.array([gaze_x_pred, gaze_y_pred]) - np.array([gaze_x_true, gaze_y_true]))
                 total_errors.append(error)
 
                 print(f"True Gaze: ({gaze_x_true:.2f}, {gaze_y_true:.2f}) cm, "
