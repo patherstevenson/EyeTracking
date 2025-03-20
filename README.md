@@ -63,9 +63,9 @@ EyeTracking/
 │   │   ├── GazeModel.py        # The deep learning model for gaze prediction
 │   │   ├── GazeTracker.py      # Main gaze tracking logic
 │   └── utils/                  # Utility functions and configurations
-│       ├── calibration_13_pts.png  # Calibration grid (13 points)
-│       ├── calibration_5_pts.png   # Calibration grid (5 points)
-│       ├── calibration_9_pts.png   # Calibration grid (9 points)
+│       ├── calib_13            # Calibration grid (13 points)
+│       ├── calib_9             # Calibration grid (9 points)
+│       ├── calib_5             # Calibration grid (5 points)
 │       ├── config.py           # Configuration parameters (screen size, calibration settings)
 │       ├── utils.py            # Helper functions for preprocessing and gaze tracking
 ├── tests/                      # Unit tests for the project
@@ -74,7 +74,6 @@ EyeTracking/
 │   ├── test_GazeModel.py       # Tests for GazeModel
 │   ├── test_GazeTracker.py     # Tests for GazeTracker
 │   ├── test_utils.py           # Tests for utility functions
-│   ├── __pycache__/            # Compiled Python cache files (ignored)
 └── docs/                       # Sphinx documentation (to be generated)
 ```
 
