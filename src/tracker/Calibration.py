@@ -88,7 +88,8 @@ class Calibration:
         self.window_name: str = "Calibration Window"
         self.calibration_done: bool = False
         self.calibration_points = get_numbered_calibration_points()
-        
+        self.current_index = 0
+
         # Load and resize the calibration image
         self.calibration_image = cv2.imread(CALIBRATION_IMAGE_PATH)
         if self.calibration_image is None:
@@ -115,19 +116,19 @@ class Calibration:
         :type param: any
         """
         if event == cv2.EVENT_LBUTTONDOWN and not self.calibration_done:
-            
+
             # The next expected point
-            expected_point = self.calibration_points[self.current_index] 
-            
+            expected_point = self.calibration_points[self.current_index]
+
             if euclidan_distance_radius((x, y), expected_point, SCREEN_WIDTH // 32):
                 print(f"Correct click at point {self.current_index} ({x}, {y})")
-                
+
                 self.current_target = (x, y)
 
                 # Load the next calibration image
                 self.current_index += 1
                 if self.current_index < len(self.calibration_points):
-                    new_image_path = CALIBRATION_IMAGE_PATH.rstrip(f"{self.current_index - 1}.png") + f"{self.current_index}.png"
+                    new_image_path = CALIBRATION_IMAGE_PATH.rstrip("0.png") + f"{self.current_index}.png"
                     self.calibration_image = cv2.imread(new_image_path)
 
                     if self.calibration_image is None:
@@ -149,16 +150,16 @@ class Calibration:
         if not self.capture_points:
             print("No calibration data available for evaluation.")
             return 0.0, 0.0
-        
+
         print("\nEvaluation of calibration started")
-        
+
         total_errors = []
 
         self.gaze_tracker.model.eval()
 
         with torch.no_grad():
             for (face_input, left_eye_input, right_eye_input, face_grid_input), (gaze_x_true, gaze_y_true) in self.capture_points:
-                
+
                 # Move tensors to device
                 face_input = face_input.to(self.gaze_tracker.device)
                 left_eye_input = left_eye_input.to(self.gaze_tracker.device)
@@ -183,7 +184,7 @@ class Calibration:
         std_error = np.std(total_errors)
 
         print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm\n")
-        
+
         return mean_error, std_error
 
     def run_calibration(self, webcam: cv2.VideoCapture) -> CalibrationDataset:
