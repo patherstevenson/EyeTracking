@@ -86,17 +86,17 @@ def draw_bounding_boxes(frame: np.ndarray, face_bbox: Optional[Tuple[int, int, i
     # Draw the bounding box for the face
     if face_bbox is not None:
         x, y, w, h = face_bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), FACE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (w, h), FACE_COLOR, 2)
 
     # Draw the bounding box for the left eye
     if left_eye_bbox is not None:
         x, y, w, h = left_eye_bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), EYE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (w, h), EYE_COLOR, 2)
 
     # Draw the bounding box for the right eye
     if right_eye_bbox is not None:
         x, y, w, h = right_eye_bbox
-        cv2.rectangle(frame, (x, y), (x + w, y + h), EYE_COLOR, 2)
+        cv2.rectangle(frame, (x, y), (w, h), EYE_COLOR, 2)
 
     return frame
 
