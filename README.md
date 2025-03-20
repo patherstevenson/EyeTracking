@@ -63,9 +63,9 @@ EyeTracking/
 │   │   ├── GazeModel.py        # The deep learning model for gaze prediction
 │   │   ├── GazeTracker.py      # Main gaze tracking logic
 │   └── utils/                  # Utility functions and configurations
-│       ├── calib_13            # Calibration grid (13 points)
-│       ├── calib_9             # Calibration grid (9 points)
-│       ├── calib_5             # Calibration grid (5 points)
+│       ├── calib_13/*.png      # Calibration grid (13 points)
+│       ├── calib_9/*.png       # Calibration grid (9 points)
+│       ├── calib_5/*.png       # Calibration grid (5 points)
 │       ├── config.py           # Configuration parameters (screen size, calibration settings)
 │       ├── utils.py            # Helper functions for preprocessing and gaze tracking
 ├── tests/                      # Unit tests for the project
