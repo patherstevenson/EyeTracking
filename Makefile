@@ -5,12 +5,19 @@ PYTEST=pytest
 TEST_PATH=tests
 SRC=./src
 MAIN=src/main.py
+APP=src.app:app
+UVN=uvicorn
+HOST=localhost
+PORT=8000
 export PYTHONPATH
 SPHINXBUILD=sphinx-build
 CONFIGPATH=.
 SOURCEDOC=sourcedoc
 DOC=doc
 LIBS=requirements.txt
+
+api:
+	$(UVN) $(APP) --reload --host $(HOST) --port $(PORT)
 
 run:
 	$(PY3) $(MAIN)
@@ -26,7 +33,7 @@ lib:
 
 clean:
 	rm -f *~ */*~
-	rm -rf __pycache__ */__pycache__
+	rm -rf __pycache__ */__pycache__ /*/*/__pycache__
 	rm -rf .pytest_cache
 	rm -rf $(DOC)
 	rm -f $(PROJECT).zip
@@ -42,4 +49,4 @@ author:
 	sed -i -e 's/^copyright =.*/copyright = "2025, $(AUTHOR), CRIStAL - Univ. Lille"/g' conf.py
 	sed -i -e 's/^author =.*/author = "$(AUTHOR)"/g' conf.py
 
-.PHONY: clean doc archive author lib test run
+.PHONY: clean doc archive author lib test run api

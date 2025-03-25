@@ -17,7 +17,7 @@ import numpy as np
 import scipy.io as sio
 from typing import Optional, Tuple, Dict
 
-from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
+from src.utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
 # MediaPipe marker IDs for facial landmarks
 LEFT_EYE = [33, 133]
