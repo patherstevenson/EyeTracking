@@ -3,8 +3,6 @@ AUTHOR=Pather Stevenson, Deise Santana Maia
 PY3=python3
 PYTEST=pytest
 TEST_PATH=tests
-SRC=./src
-MAIN=src/main.py
 APP=src.app:app
 UVN=uvicorn
 HOST=localhost
@@ -19,13 +17,11 @@ LIBS=requirements.txt
 api:
 	$(UVN) $(APP) --reload --host $(HOST) --port $(PORT)
 
-run:
-	$(PY3) $(MAIN)
-
 test:
 	$(PYTEST) $(TEST_PATH) -vv -W ignore::DeprecationWarning
 
 lib:
+	npm install @mediapipe/face_mesh
 	pip install torch==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121
 	pip install torchaudio==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121
 	pip install torchvision==0.19.0+cu121 --index-url https://download.pytorch.org/whl/cu121
@@ -33,7 +29,7 @@ lib:
 
 clean:
 	rm -f *~ */*~
-	rm -rf __pycache__ */__pycache__ /*/*/__pycache__
+	rm -rf __pycache__ */__pycache__
 	rm -rf .pytest_cache
 	rm -rf $(DOC)
 	rm -f $(PROJECT).zip
@@ -49,4 +45,4 @@ author:
 	sed -i -e 's/^copyright =.*/copyright = "2025, $(AUTHOR), CRIStAL - Univ. Lille"/g' conf.py
 	sed -i -e 's/^author =.*/author = "$(AUTHOR)"/g' conf.py
 
-.PHONY: clean doc archive author lib test run api
+.PHONY: clean doc archive author lib test api

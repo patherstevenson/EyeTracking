@@ -15,9 +15,9 @@ landmark extraction, and coordinate transformation.
 import cv2
 import numpy as np
 import scipy.io as sio
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple
 
-from src.utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
+GAZE_RANGE_CM: int = 25
 
 # MediaPipe marker IDs for facial landmarks
 LEFT_EYE = [33, 133]
@@ -44,7 +44,7 @@ def loadMetadata(filename: str, silent: bool = False) -> dict | None:
         return None
     return metadata
 
-def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]], 
+def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]], SCREEN_WIDTH: int, SCREEN_HEIGHT:int , 
                       x_margin: int = 0, y_margin: int = 0) -> tuple[int, int, int, int]:
     """
     Computes the bounding box around specified facial landmarks.
@@ -100,7 +100,6 @@ def draw_bounding_boxes(frame: np.ndarray, face_bbox: Optional[Tuple[int, int, i
 
     return frame
 
-
 def preprocess_roi(roi: np.ndarray, size: tuple[int, int] = (224, 224)) -> np.ndarray:
     """
     Preprocesses an image region of interest (ROI) for model input.
@@ -140,7 +139,7 @@ def generate_face_grid(face_bbox: tuple[int, int, int, int],
     face_grid[grid_y:grid_y + grid_h, grid_x:grid_x + grid_w] = 1
     return face_grid.flatten()
 
-def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
+def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float, SCREEN_WIDTH: int, SCREEN_HEIGHT: int)  -> tuple[int, int]:
     """
     Converts gaze prediction from cm (relative to center) into screen pixel coordinates.
 
@@ -156,7 +155,7 @@ def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
 
     return int(x_pixel), int(y_pixel)
 
-def pixels_to_gaze_cm(x_pixel: int, y_pixel: int) -> tuple[float, float]:
+def pixels_to_gaze_cm(x_pixel: int, y_pixel: int, SCREEN_WIDTH: int, SCREEN_HEIGHT: int) -> tuple[float, float]:
     """
     Convert pixel coordinates to gaze coordinates in cm relative to screen center.
 
@@ -168,36 +167,3 @@ def pixels_to_gaze_cm(x_pixel: int, y_pixel: int) -> tuple[float, float]:
     y_cm: float = GAZE_RANGE_CM - ((y_pixel / SCREEN_HEIGHT) * 2 * GAZE_RANGE_CM)
 
     return x_cm, y_cm
-
-def euclidan_distance_radius(pt1: tuple[float, float], pt2: tuple[float, float], radius: float) -> bool:
-    """
-    Check if the Euclidean distance between two points is less than or equal to a given radius.
-
-    :param pt1: (x1, y1) First point in cm
-    :param pt2: (x2, y2) Second point in cm
-    :param radius: Maximum allowable distance in cm
-    :return: True if the distance between pt1 and pt2 is less than or equal to radius, otherwise False.
-    """
-    return np.linalg.norm(np.array(pt1) - np.array(pt2)) <= radius
-
-def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
-    """
-    Returns the numbered calibration points as a dictionary {index: (x, y)}.
-    
-    :return: Dictionary with keys as indices (0-12) and values as (x, y) tuples.
-    """
-    return {
-        0:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.1)),
-        1:  (int(SCREEN_WIDTH * 0.25) , int(SCREEN_HEIGHT * 0.25)),
-        2:  (int(SCREEN_WIDTH * 0.5) , int(SCREEN_HEIGHT * 0.1)),
-        3:  (int(SCREEN_WIDTH * 0.75) , int(SCREEN_HEIGHT * 0.25)),
-        4:  (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.1)),
-        5:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.5)),
-        6:  (MID_X, MID_Y),
-        7:  (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.5)),
-        8:  (int(SCREEN_WIDTH * 0.1) , int(SCREEN_HEIGHT * 0.9)),
-        9:  (int(SCREEN_WIDTH * 0.25) , int(SCREEN_HEIGHT * 0.75)),
-        10: (int(SCREEN_WIDTH * 0.5) , int(SCREEN_HEIGHT * 0.9)),
-        11: (int(SCREEN_WIDTH * 0.75) , int(SCREEN_HEIGHT * 0.75)),
-        12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
-    }

@@ -14,23 +14,16 @@ for further analysis.
 """
 
 import os
-import cv2
 import torch
 import torch.nn as nn
 import torch.optim
 import torch.utils.data
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
-import mediapipe as mp
-
-from utils.utils import *
-from utils.config import MID_X, MID_Y, LR, EPOCH, BATCH_SIZE
+from src.utils.utils import *
 
 from .GazeDataLogger import GazeDataLogger
 from .GazeModel import GazeModel
-from .Calibration import Calibration
-
-
 
 class GazeTracker:
     """
@@ -55,7 +48,7 @@ class GazeTracker:
         self._load_model(model_path)
         self.logger = GazeDataLogger()
         self.margin: int = 20
-        self.calibration = Calibration(self)
+
 
     def _load_model(self, model_path: str) -> None:
         """
@@ -96,9 +89,7 @@ class GazeTracker:
         :return: Position quadrant of the gaze.
         :rtype: str
         """
-        if euclidan_distance_radius(pt1=(pos_x,pos_y), pt2=(MID_X,MID_Y), radius=SCREEN_HEIGHT//4):
-            return "Center"
-        elif pos_x < MID_X and pos_y < MID_Y:
+        if pos_x < MID_X and pos_y < MID_Y:
             return "Top Left"
         elif pos_x > MID_X and pos_y < MID_Y:
             return "Top Right"
@@ -107,7 +98,7 @@ class GazeTracker:
         elif pos_x > MID_X and pos_y > MID_Y:
             return "Bottom Right"
         else:
-            "None"
+            "Center"
 
     def _determine_quadrant(self, gaze_x: float, gaze_y: float) -> str:
         """
@@ -136,6 +127,49 @@ class GazeTracker:
         Saves logged gaze tracking data to a file.
         """
         self.logger.save_data()
+
+    def evaluate_calibration(self, capture_points) -> tuple[float, float]:
+        """
+        Evaluates the accuracy of the fine-tuned gaze tracking model on calibration points.
+
+        :return: Mean Euclidean distance error and standard deviation in cm.
+        :rtype: tuple[float, float]
+        """
+
+        print("\nEvaluation of calibration started")
+
+        total_errors = []
+
+        self.gaze_tracker.model.eval()
+
+        with torch.no_grad():
+            for (face_input, left_eye_input, right_eye_input, face_grid_input), (gaze_x_true, gaze_y_true) in capture_points:
+
+                # Move tensors to device
+                face_input = face_input.to(self.device)
+                left_eye_input = left_eye_input.to(self.device)
+                right_eye_input = right_eye_input.to(self.device)
+                face_grid_input = face_grid_input.to(self.device)
+
+                # Model prediction
+                gaze_prediction = self.model(face_input, left_eye_input, right_eye_input, face_grid_input)
+                gaze_x_pred, gaze_y_pred = gaze_prediction.cpu().numpy().flatten()
+
+                # Compute Euclidean error in cm
+                error =  np.linalg.norm(np.array([gaze_x_pred, gaze_y_pred]) - np.array([gaze_x_true, gaze_y_true]))
+                total_errors.append(error)
+
+                print(f"True Gaze: ({gaze_x_true:.2f}, {gaze_y_true:.2f}) cm, "
+                      f"Predicted Gaze: ({gaze_x_pred:.2f}, {gaze_y_pred:.2f}) cm, "
+                      f"Error: {error:.2f} cm")
+
+        # Compute mean and standard deviation
+        mean_error = np.mean(total_errors)
+        std_error = np.std(total_errors)
+
+        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm\n")
+
+        return mean_error, std_error
 
     def train(self, dataset: Dataset, epochs: int = 10, learning_rate: float = 1e-4, batch_size: int = 4) -> None:
         """
@@ -180,8 +214,7 @@ class GazeTracker:
 
         print("Fine-tuning complete.")
 
-
-    def extract_features(self, img: torch.Tensor, face_landmarks) -> tuple:
+    def extract_features(self, img: torch.Tensor, face_landmarks, SCREEN_WIDTH:int , SCREEN_HEIGHT: int) -> tuple:
         """
         Extracts facial features from the image using detected landmarks.
 
@@ -195,9 +228,9 @@ class GazeTracker:
         landmarks = [(int(pt.x * w), int(pt.y * h)) for pt in face_landmarks.landmark]
 
         # Bounding boxes for eyes and face
-        left_eye_bbox = get_bounding_box(LEFT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
-        right_eye_bbox = get_bounding_box(RIGHT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
-        face_bbox = get_bounding_box(FACE_OVAL, landmarks, x_margin=self.margin, y_margin=self.margin)
+        left_eye_bbox = get_bounding_box(LEFT_EYE, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
+        right_eye_bbox = get_bounding_box(RIGHT_EYE, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
+        face_bbox = get_bounding_box(FACE_OVAL, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
 
         # Draw bounding box rectangles
         draw_bounding_boxes(img, face_bbox=face_bbox, left_eye_bbox=left_eye_bbox, right_eye_bbox=right_eye_bbox)
@@ -258,41 +291,3 @@ class GazeTracker:
             )
 
             return pos_x, pos_y, position
-
-    def run(self, webcam: cv2.VideoCapture) -> None:
-        """
-        Runs the gaze tracking loop, capturing frames and processing gaze estimation.
-        Performs calibration and fine-tuning before running the tracking.
-
-        :param webcam: OpenCV VideoCapture object.
-        :type webcam: cv2.VideoCapture
-        """
-        calibration_dataset = self.calibration.run_calibration(webcam)
-
-        print("\nFine-tuning the model with calibration data...")
-        self.train(calibration_dataset, epochs=EPOCH, learning_rate=LR, batch_size=BATCH_SIZE)
-
-        # start eval of the proccesed calibration
-        mean_error, std_error = self.calibration.evaluate_calibration_accuracy()
-
-        with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
-            while True:
-                success, img = webcam.read()
-                if not success:
-                    print("Error reading from the webcam.")
-                    exit(1)
-
-                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                img_mp = face_mesh.process(img_rgb)
-
-                if img_mp.multi_face_landmarks:
-                    for face_landmarks in img_mp.multi_face_landmarks:
-                        face_input, left_eye_input, right_eye_input, face_grid_input = self.extract_features(img, face_landmarks)
-                        self.predict_gaze(face_input, left_eye_input, right_eye_input, face_grid_input)
-
-                cv2.imshow("Face Mesh with Gaze Prediction", img)
-
-                if cv2.waitKey(20) & 0xFF == ord("q"):
-                    break
-
-        self.logger.save_data()

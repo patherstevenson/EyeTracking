@@ -1,6 +1,6 @@
 from .GazeModel import GazeModel
 from .GazeTracker import GazeTracker
 from .GazeDataLogger import GazeDataLogger
-from .Calibration import Calibration
+from .CalibrationDataset import CalibrationDataset
 
-__all__ = ["GazeModel", "GazeTracker", "GazeDataLogger", "Calibration"]
+__all__ = ["GazeModel", "GazeTracker", "GazeDataLogger", "CalibrationDataset"]

@@ -7,8 +7,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../s
 
 from utils.utils import *
 
-from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT
-
+SCREEN_WIDTH = 1920
+SCREEN_HEIGHT = 1080
 
 # Test loadMetadata
 def test_loadMetadata():
@@ -52,17 +52,6 @@ def test_pixels_to_gaze_cm():
     assert abs(x_cm) < 1e-5
     assert abs(y_cm) < 1e-5
 
-### Test euclidan_distance_radius
-@pytest.mark.parametrize("pt1, pt2, radius, expected", [
-    ((0.0, 0.0), (3.0, 4.0), 5.0, True),   # Distance = 5.0, equal to the radius
-    ((0.0, 0.0), (6.0, 8.0), 5.0, False),  # Distance = 10.0, greater than the radius
-    ((1.0, 1.0), (4.0, 5.0), 5.0, True),   # Distance = 5.0, equal to the radius
-    ((0.0, 0.0), (0.0, 0.0), 1.0, True),   # Same point, distance = 0.0
-    ((0.0, 0.0), (0.5, 0.5), 1.0, True),   # Distance = 0.707, less than the radius
-])
-def test_euclidan_distance_radius(pt1, pt2, radius, expected):
-    assert euclidan_distance_radius(pt1, pt2, radius) == expected
-
 ### Test draw_bounding_boxes
 def test_draw_bounding_boxes():
     # Create a blank black image (480x640)
@@ -85,45 +74,3 @@ def test_draw_bounding_boxes():
 
     x, y, w, h = right_eye_bbox
     assert np.any(modified_frame[y:y+h, x:x+w] != frame[y:y+h, x:x+w]), "Right eye bounding box not drawn correctly"
-    
-    
-TEST_SCREEN_WIDTH = 1920
-TEST_SCREEN_HEIGHT = 1080
-
-EXPECTED_CALIBRATION_POINTS = {
-    0:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.1)),
-    1:  (int(TEST_SCREEN_WIDTH * 0.25), int(TEST_SCREEN_HEIGHT * 0.25)),
-    2:  (int(TEST_SCREEN_WIDTH * 0.5), int(TEST_SCREEN_HEIGHT * 0.1)),
-    3:  (int(TEST_SCREEN_WIDTH * 0.75), int(TEST_SCREEN_HEIGHT * 0.25)),
-    4:  (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.1)),
-    5:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.5)),
-    6:  (TEST_SCREEN_WIDTH // 2, TEST_SCREEN_HEIGHT // 2),  # MID_X, MID_Y
-    7:  (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.5)),
-    8:  (int(TEST_SCREEN_WIDTH * 0.1), int(TEST_SCREEN_HEIGHT * 0.9)),
-    9:  (int(TEST_SCREEN_WIDTH * 0.25), int(TEST_SCREEN_HEIGHT * 0.75)),
-    10: (int(TEST_SCREEN_WIDTH * 0.5), int(TEST_SCREEN_HEIGHT * 0.9)),
-    11: (int(TEST_SCREEN_WIDTH * 0.75), int(TEST_SCREEN_HEIGHT * 0.75)),
-    12: (int(TEST_SCREEN_WIDTH * 0.9), int(TEST_SCREEN_HEIGHT * 0.9)),
-}
-
-def test_get_numbered_calibration_points():
-    # Mock screen dimensions
-    global SCREEN_WIDTH, SCREEN_HEIGHT, MID_X, MID_Y
-    SCREEN_WIDTH = TEST_SCREEN_WIDTH
-    SCREEN_HEIGHT = TEST_SCREEN_HEIGHT
-    MID_X = SCREEN_WIDTH // 2
-    MID_Y = SCREEN_HEIGHT // 2
-
-    # Compute the calibration points
-    calibration_points = get_numbered_calibration_points()
-
-    # Verify the output is a dictionary
-    assert isinstance(calibration_points, dict), "Output should be a dictionary"
-
-    # Verify that the dictionary has exactly 13 points
-    assert len(calibration_points) == 13, "There should be exactly 13 calibration points"
-
-    # Check each expected point
-    for key, expected_value in EXPECTED_CALIBRATION_POINTS.items():
-        assert key in calibration_points, f"Missing key {key} in calibration points"
-        assert calibration_points[key] == expected_value, f"Point {key} is incorrect: expected {expected_value}, got {calibration_points[key]}"

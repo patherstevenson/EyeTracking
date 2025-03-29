@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from src.backend.routes import calibration_router
+from src.backend.routes import calibration_router, model_router, config_router
+
 import os
 
 app = FastAPI()
@@ -18,5 +19,6 @@ async def serve_calibration_page():
     return FileResponse(os.path.join(static_path, "index.html"))
 
 # Ajouter les routes API
+app.include_router(config_router, prefix="/config", tags=["Config"])
 app.include_router(calibration_router, prefix="/calibration", tags=["Calibration"])
-#app.include_router(model_router, prefix="/model", tags=["Model"])
+app.include_router(model_router, prefix="/model", tags=["Model"])
