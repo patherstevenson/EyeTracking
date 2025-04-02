@@ -60,6 +60,11 @@ let calibrationPoints = [];
 let latestFaceLandmarks = null;
 let lastLandmarkTimestamp = 0;
 
+let pulseRadius = POINT_RADIUS;
+let pulseGrowing = true;
+let pulseAnimationId = null;
+
+
 // Capturer la vidéo en arrière-plan SANS l'afficher
 const video = document.createElement("video");
 video.setAttribute("autoplay", "");
@@ -136,6 +141,14 @@ function updateCanvasSize() {
     ];
 }
 
+function resetCalibration() {
+    currentIndex = 0;
+    capturedPoints = [];
+    canvas.style.display = "none";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById("processingMessage").style.display = "none";
+    document.getElementById("startButton").style.display = "block";
+}
 
 async function startCalibration() {
     try {
@@ -143,7 +156,6 @@ async function startCalibration() {
         updateCanvasSize();
         document.getElementById("startButton").style.display = "none";
 
-        // Envoyer les dimensions au backend
         const formData = new FormData();
         formData.append("width", window.innerWidth);
         formData.append("height", window.innerHeight);
@@ -160,7 +172,6 @@ async function startCalibration() {
         const result = await response.json();
         console.log("Screen size registered:", result);
 
-        // Seulement après succès
         canvas.style.display = "block";
         drawCalibrationPoint(0);
 
@@ -189,13 +200,41 @@ function enterFullScreen() {
 }
 
 function drawCalibrationPoint(index) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "black";
     const [x, y] = calibrationPoints[index];
-    ctx.beginPath();
-    ctx.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
-    ctx.fill();
+    let start = null;
+    const duration = 1000;
+    const maxPulse = POINT_RADIUS + 8;
+    const minPulse = POINT_RADIUS - 2;
+
+    function animate(timestamp) {
+        if (!start) start = timestamp;
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Pulse effect: ease-out style shrink back
+        const radius = maxPulse - (maxPulse - minPulse) * progress;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "black";
+        ctx.fill();
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            // Draw final stable point
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            ctx.arc(x, y, POINT_RADIUS, 0, Math.PI * 2);
+            ctx.fillStyle = "black";
+            ctx.fill();
+        }
+    }
+
+    requestAnimationFrame(animate);
 }
+
 
 canvas.addEventListener("click", async function(event) {
     if (needsFullScreenRestore) {
@@ -246,6 +285,13 @@ canvas.addEventListener("click", async function(event) {
     } else {
         console.log("Collected 13 points. Sending calibration data...");
 
+        // Clear the canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = "none";
+
+        // Show wait message
+        document.getElementById("processingMessage").style.display = "block";
+
         try {
             const response = await fetch("/calibration/submit_calibration", {
                 method: "POST",
@@ -257,12 +303,160 @@ canvas.addEventListener("click", async function(event) {
             if (result.error) {
                 console.error("Calibration error:", result.error);
                 showErrorMessage("Calibration failed.");
+                resetCalibration();
             } else {
                 console.log("Calibration and fine-tuning completed:", result);
+                document.getElementById("processingMessage").style.display = "none";
+                startExperiments();
             }
         } catch (err) {
             console.error("Error sending calibration data:", err);
             showErrorMessage("Network error during calibration.");
+            resetCalibration();
         }
     }
 });
+
+async function startExperiments() {
+    canvas.style.display = "block";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw central fixation cross
+    drawFixationCross();
+
+    let fixationFrames = 0;
+    const requiredFixation = 15;
+
+    async function checkFixationLoop() {
+        if (!latestFaceLandmarks || latestFaceLandmarks.length !== 468) {
+            requestAnimationFrame(checkFixationLoop);
+            return;
+        }
+
+        const captureCanvas = document.createElement("canvas");
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        const captureCtx = captureCanvas.getContext("2d");
+        captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        const imageBase64 = captureCanvas.toDataURL("image/jpeg");
+
+        try {
+            const formData = new FormData();
+            formData.append("image_base64", imageBase64);
+            formData.append("landmarks", JSON.stringify(latestFaceLandmarks));
+
+            const response = await fetch("/model/predict_gaze", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.x_cm !== undefined && result.y_cm !== undefined) {
+                const isLookingCenter = Math.abs(result.x_cm) < 2.0 && Math.abs(result.y_cm) < 2.0;
+
+                if (isLookingCenter) {
+                    fixationFrames++;
+                    if (fixationFrames >= requiredFixation) {
+                        console.log("User fixated the cross.");
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                        // Display left and right images
+                        const imageLeft = new Image();
+                        const imageRight = new Image();
+
+                        imageLeft.src = "/static/img/left.png";    
+                        imageRight.src = "/static/img/right.png";
+
+                        imageLeft.onload = () => {
+                            imageRight.onload = () => {
+                                const midY = canvas.height / 2;
+                                const imageHeight = canvas.height * 0.4;
+                                const imageWidth = canvas.width * 0.25;
+
+                                const leftX = canvas.width * 0.15;
+                                const rightX = canvas.width * 0.6;
+
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.drawImage(imageLeft, leftX, midY - imageHeight / 2, imageWidth, imageHeight);
+                                ctx.drawImage(imageRight, rightX, midY - imageHeight / 2, imageWidth, imageHeight);
+
+                                startRealTimeGazePrediction();
+                            };
+                        };
+                        return;
+                    }
+                } else {
+                    fixationFrames = 0;
+                }
+            }
+        } catch (err) {
+            console.error("Prediction error:", err);
+        }
+
+        requestAnimationFrame(checkFixationLoop);
+    }
+
+    checkFixationLoop();
+}
+
+function drawFixationCross() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const crossSize = 40;
+    const lineWidth = 6;
+
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = lineWidth;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX - crossSize, centerY);
+    ctx.lineTo(centerX + crossSize, centerY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - crossSize);
+    ctx.lineTo(centerX, centerY + crossSize);
+    ctx.stroke();
+}
+
+function startRealTimeGazePrediction() {
+    async function loop() {
+        if (!latestFaceLandmarks || latestFaceLandmarks.length !== 468) {
+            requestAnimationFrame(loop);
+            return;
+        }
+
+        const captureCanvas = document.createElement("canvas");
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        const captureCtx = captureCanvas.getContext("2d");
+        captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        const imageBase64 = captureCanvas.toDataURL("image/jpeg");
+
+        try {
+            const formData = new FormData();
+            formData.append("image_base64", imageBase64);
+            formData.append("landmarks", JSON.stringify(latestFaceLandmarks));
+
+            const response = await fetch("/model/predict_gaze", {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+            if (result.x_cm !== undefined) {
+                if (result.x_cm < 0) {
+                    console.log("Looking LEFT");
+                } else {
+                    console.log("Looking RIGHT");
+                }
+            }
+        } catch (err) {
+            console.error("Prediction error:", err);
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    loop();
+}
