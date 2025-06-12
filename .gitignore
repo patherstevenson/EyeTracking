@@ -7,3 +7,4 @@ doc/
 .pytest_cache
 .conda
 node_modules/
+dataset/
