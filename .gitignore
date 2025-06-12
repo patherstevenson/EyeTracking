@@ -6,3 +6,4 @@ doc/
 .ipynb_checkpoints/
 .pytest_cache
 .conda
+node_modules/
