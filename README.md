@@ -35,6 +35,10 @@ To install all dependencies:
 $ make lib
 ```
 
+Dataset can be download here :
+
+* [dataset](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIGaze.tar.gz)
+
 ## Project Structure
 
 ```
