@@ -18,14 +18,14 @@ grpcio==1.65.1
 h5py==3.11.0
 imagesize==1.4.1
 joblib==1.4.2
-keras==3.4.1
+keras==3.5.0
 langcodes==3.4.0
 language_data==1.2.0
 libclang==18.1.1
 lxml==5.2.2
 marisa-trie==1.2.0
 Markdown==3.6
-ml-dtypes==0.4.0
+ml-dtypes==0.5.1
 mpmath==1.3.0
 murmurhash==1.0.10
 namex==0.0.8
@@ -65,7 +65,7 @@ sphinxcontrib-qthelp==1.0.8
 sphinxcontrib-serializinghtml==1.1.10
 srsly==2.4.8
 sympy==1.12
-tensorboard==2.17.0
+tensorboard==2.19.0
 tensorboard-data-server==0.7.2
 termcolor==2.4.0
 thinc==8.2.5
@@ -88,3 +88,4 @@ mediapipe==0.10.21
 opencv-python==4.11.0.86
 scipy==1.15.1
 pytest==8.3.4
+pandas==2.3.0
