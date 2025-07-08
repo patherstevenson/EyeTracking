@@ -44,7 +44,12 @@ def loadMetadata(filename: str, silent: bool = False) -> dict | None:
         return None
     return metadata
 
-def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]], 
+def is_valid(bbox):
+            x_min, y_min, x_max, y_max = bbox
+            return (x_max - x_min) > 1 and (y_max - y_min) > 1
+
+def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]],
+                     width: int = SCREEN_WIDTH, height: int = SCREEN_HEIGHT,
                       x_margin: int = 0, y_margin: int = 0) -> tuple[int, int, int, int]:
     """
     Computes the bounding box around specified facial landmarks.
@@ -63,8 +68,9 @@ def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]],
     coords = [landmarks[i] for i in indices]
     x_min = max(0, min(pt[0] for pt in coords) - x_margin)
     y_min = max(0, min(pt[1] for pt in coords) - y_margin)
-    x_max = min(SCREEN_WIDTH, max(pt[0] for pt in coords) + x_margin)
-    y_max = min(SCREEN_HEIGHT, max(pt[1] for pt in coords) + y_margin)
+    x_max = min(width, max(pt[0] for pt in coords) + x_margin)
+    y_max = min(height, max(pt[1] for pt in coords) + y_margin)
+    
     return x_min, y_min, x_max, y_max
 
 def draw_bounding_boxes(frame: np.ndarray, face_bbox: Optional[Tuple[int, int, int, int]] = None,
