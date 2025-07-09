@@ -20,8 +20,8 @@ from typing import Optional, Tuple, Dict
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
 # MediaPipe marker IDs for facial landmarks
-LEFT_EYE = [33, 133]
-RIGHT_EYE = [362, 263]
+LEFT_EYE = [33, 133, 159, 160, 158, 144]
+RIGHT_EYE = [362, 263, 386, 387, 385, 373]
 FACE_OVAL = list(range(10, 338))
 
 def loadMetadata(filename: str, silent: bool = False) -> dict | None:
@@ -43,10 +43,6 @@ def loadMetadata(filename: str, silent: bool = False) -> dict | None:
         print(f"\tFailed to read the meta file '{filename}'!")
         return None
     return metadata
-
-def is_valid(bbox):
-            x_min, y_min, x_max, y_max = bbox
-            return (x_max - x_min) > 1 and (y_max - y_min) > 1
 
 def get_bounding_box(indices: list[int], landmarks: list[tuple[int, int]],
                      width: int = SCREEN_WIDTH, height: int = SCREEN_HEIGHT,

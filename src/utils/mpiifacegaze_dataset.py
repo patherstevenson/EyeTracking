@@ -20,10 +20,10 @@ def load_annotation_file(annotation_path):
 
 def filtered_collate(batch):
     batch = [item for item in batch if item is not None]
-    
+
     if len(batch) == 0:
         return None
-    
+
     return {
         'face': torch.stack([item['face'] for item in batch]),
         'eye_left': torch.stack([item['eye_left'] for item in batch]),
@@ -93,32 +93,6 @@ class MPIIFaceGazeDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def __getitem__(self, idx):
-        subject, img_path, ann = self.samples[idx]
-        img = cv2.imread(img_path)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-        transform = self.transform or transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-        ])
-
-        face_tensor = transform(img)
-
-        gaze_x = float(ann[1])
-        gaze_y = float(ann[2])
-        label = torch.tensor([gaze_x, gaze_y], dtype=torch.float32)
-        face_grid = torch.zeros((1, 25, 25), dtype=torch.float32)
-
-        return {
-            'face': face_tensor,
-            'face_grid': face_grid,
-            'label': label,
-            'subject': subject,
-            'eye_used': ann[-1]
-        }
-
     def get_screen_sizes(self):
         records = []
         for subject in sorted(os.listdir(self.root_dir)):
@@ -150,8 +124,10 @@ class MPIIFaceGazeDataset(Dataset):
             try:
                 gaze_x = float(ann[1])
                 gaze_y = float(ann[2])
+
                 subjects.append(subject)
                 paths.append(img_path)
+
                 gaze_xs.append(gaze_x)
                 gaze_ys.append(gaze_y)
             except Exception:
@@ -193,7 +169,7 @@ class FaceGazeDataset(Dataset):
         self.face_size = face_size
         self.grid_size = grid_size
 
-        self.face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True, max_num_faces=1, refine_landmarks=True)
+        self.face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True,refine_landmarks=True, max_num_faces=1)
 
     def __len__(self):
         return len(self.data)
@@ -210,27 +186,22 @@ class FaceGazeDataset(Dataset):
             return None
 
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        mp_results = self.face_mesh.process(img_rgb)
+        img_mp = self.face_mesh.process(img_rgb)
 
-        if not mp_results.multi_face_landmarks:
+        if not img_mp.multi_face_landmarks:
             with open("skipped_images.txt", "a") as f:
                 f.write(f"[NO FACE] {img_path}\n")
             return None
 
-        landmarks = mp_results.multi_face_landmarks[0]
+        landmarks = img_mp.multi_face_landmarks[0]
 
-        h, w = img.shape[:2]
+        h, w, _ = img.shape
         points = [(int(pt.x * w), int(pt.y * h)) for pt in landmarks.landmark]
 
         try:
             left_eye_bbox = get_bounding_box(LEFT_EYE, points, w, h)
             right_eye_bbox = get_bounding_box(RIGHT_EYE, points, w, h)
             face_bbox = get_bounding_box(FACE_OVAL, points, w, h)
-
-            if not all(map(is_valid, [left_eye_bbox, right_eye_bbox, face_bbox])):
-                with open("skipped_images.txt", "a") as f:
-                    f.write(f"[INVALID BBOX] {img_path}\n")
-                return None
 
             left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
             right_eye_roi = preprocess_roi(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])
@@ -239,6 +210,9 @@ class FaceGazeDataset(Dataset):
         except Exception as e:
             with open("skipped_images.txt", "a") as f:
                 f.write(f"[EXCEPTION] {img_path} -- {str(e)}\n")
+                f.write(f"left_eye : {len(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])} {left_eye_bbox}\n")
+                f.write(f"right_eye: {len(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])} {right_eye_bbox}\n")
+                f.write(f"face : {len(img[face_bbox[0]:face_bbox[2], face_bbox[1]:face_bbox[3]])} {face_bbox}\n")
             return None
 
         eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
