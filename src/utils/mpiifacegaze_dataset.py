@@ -224,10 +224,5 @@ class FaceGazeDataset(Dataset):
 
         gaze = torch.tensor([gaze_x, gaze_y], dtype=torch.float32)
 
-        return {
-            'face': face_tensor,
-            'eye_left': eye_left_tensor,
-            'eye_right': eye_right_tensor,
-            'face_grid': face_grid_tensor,
-            'gaze': gaze
-        }
+        return (face_tensor, eye_left_tensor,
+                eye_right_tensor, face_grid_tensor, gaze)
