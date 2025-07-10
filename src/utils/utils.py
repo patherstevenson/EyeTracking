@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 import scipy.io as sio
 from typing import Optional, Tuple, Dict
+import torch
 
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
@@ -203,3 +204,38 @@ def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
         11: (int(SCREEN_WIDTH * 0.75) , int(SCREEN_HEIGHT * 0.75)),
         12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
     }
+
+def extract_inputs_from_image(face_mesh, img_path):
+    try:
+        img = cv2.imread(img_path)
+
+        image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_mp = face_mesh.process(image_rgb)
+
+        landmarks = img_mp.multi_face_landmarks[0]
+
+        h, w, _ = img.shape
+        points = [(int(pt.x * w), int(pt.y * h)) for pt in landmarks.landmark]
+
+        left_eye_bbox = get_bounding_box(LEFT_EYE, points, w, h)
+        right_eye_bbox = get_bounding_box(RIGHT_EYE, points, w, h)
+        face_bbox = get_bounding_box(FACE_OVAL, points, w, h)
+        
+        left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
+        right_eye_roi = preprocess_roi(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])
+        face_roi = preprocess_roi(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])
+
+        eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
+        eye_right_tensor = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
+        face_tensor = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1)
+
+        face_grid = generate_face_grid(face_bbox, img.shape)
+        face_grid_tensor = torch.tensor(face_grid, dtype=torch.float32).view(1, -1)
+        
+        return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor
+        
+    except Exception as e:
+        print(f"[EXCEPTION] {img_path} -> {e}")
+        return None
+
+    
