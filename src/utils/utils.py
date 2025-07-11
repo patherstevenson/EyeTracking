@@ -15,8 +15,14 @@ landmark extraction, and coordinate transformation.
 import cv2
 import numpy as np
 import scipy.io as sio
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Union
 import torch
+import gc
+import mediapipe as mp
+from tqdm import tqdm
+import pandas as pd
+import pickle
+import os
 
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
@@ -205,37 +211,137 @@ def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
         12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
     }
 
-def extract_inputs_from_image(face_mesh, img_path):
+def extract_inputs_from_image(
+    face_mesh,
+    img_path: str,
+    means: dict
+):
+    """
+    Extracts face, eye and grid inputs from image and subtracts precomputed mean tensors.
+
+    :param face_mesh: Initialized MediaPipe face_mesh object
+    :param img_path: Path to the image file
+    :param means: Dictionary with keys 'face', 'eye_left', 'eye_right', each a 3xHxW torch tensor
+    :return: Tuple (face_tensor, left_eye_tensor, right_eye_tensor, face_grid_tensor)
+    """
+
+    assert all(k in means for k in ['face', 'eye_left', 'eye_right']), \
+        "Means dictionary must contain keys: 'face', 'eye_left', 'eye_right'"
+
     try:
         img = cv2.imread(img_path)
-
         image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_mp = face_mesh.process(image_rgb)
 
-        landmarks = img_mp.multi_face_landmarks[0]
+        if not img_mp.multi_face_landmarks:
+            return None
 
+        landmarks = img_mp.multi_face_landmarks[0]
         h, w, _ = img.shape
         points = [(int(pt.x * w), int(pt.y * h)) for pt in landmarks.landmark]
 
+        # Get bounding boxes
         left_eye_bbox = get_bounding_box(LEFT_EYE, points, w, h)
         right_eye_bbox = get_bounding_box(RIGHT_EYE, points, w, h)
         face_bbox = get_bounding_box(FACE_OVAL, points, w, h)
-        
+
+        # Extract ROIs and preprocess
         left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
         right_eye_roi = preprocess_roi(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])
         face_roi = preprocess_roi(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])
 
-        eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
-        eye_right_tensor = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
-        face_tensor = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1)
+        # Convert to tensors
+        face_tensor = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['face'])
+        eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['eye_left'])
+        eye_right_tensor = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['eye_right'])
 
+        # Face grid
         face_grid = generate_face_grid(face_bbox, img.shape)
         face_grid_tensor = torch.tensor(face_grid, dtype=torch.float32).view(1, -1)
-        
+
         return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor
-        
+
     except Exception as e:
         print(f"[EXCEPTION] {img_path} -> {e}")
         return None
 
-    
+def extract_and_save_batches(
+    df: pd.DataFrame,
+    prefix: str,
+    output_dir: str,
+    extract_fn=extract_inputs_from_image,
+    batch_size: int = 1000,
+    image_col: str = "img_path",
+    gaze_cols: Union[tuple, list] = ("gaze_x", "gaze_y"),
+):
+    """
+    Extracts MediaPipe features from a DataFrame and saves them in .pkl batches.
+
+    :param df: DataFrame containing image paths and gaze coordinates
+    :param output_dir: directory where .pkl batch files will be saved
+    :param extract_fn: function to extract features from an image path
+    :param batch_size: number of images to process per batch
+    :param image_col: name of the column containing the image path
+    :param gaze_cols: names of the columns containing gaze coordinates
+    :param prefix: prefix for the saved batch filenames
+    """
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=True,
+        refine_landmarks=True,
+        max_num_faces=1
+    )
+
+    meta = loadMetadata("metadata.mat")
+
+    means = {
+        "face": torch.tensor(meta["mean_face"], dtype=torch.float32),         # shape (3, H, W)
+        "eye_left": torch.tensor(meta["mean_left"], dtype=torch.float32),     # shape (3, H, W)
+        "eye_right": torch.tensor(meta["mean_right"], dtype=torch.float32),   # shape (3, H, W)
+    }
+
+
+    num_rows = len(df)
+    num_batches = (num_rows + batch_size - 1) // batch_size
+
+    for i in range(num_batches):
+        start = i * batch_size
+        end = min(start + batch_size, num_rows)
+        
+        df_batch = df.iloc[start:end]
+        df_features_batch = []
+
+        print(f"\n=== Processing batch {i+1}/{num_batches} ({start} to {end}) ===")
+
+        for _, row in tqdm(df_batch.iterrows(), total=len(df_batch)):
+            img_path = row[image_col]
+            gaze = tuple(row[col] for col in gaze_cols)
+
+            try:
+                features = extract_fn(face_mesh, img_path, means)
+
+                if features is not None:
+                    face, eye_left, eye_right, face_grid = features
+
+                    df_features_batch.append({
+                        'img_path': img_path,
+                        'gaze': gaze,
+                        'face': face,
+                        'eye_left': eye_left,
+                        'eye_right': eye_right,
+                        'face_grid': face_grid
+                    })
+
+            except Exception as e:
+                print(f"[ERROR] Failed on {img_path}: {e}")
+                continue
+
+        batch_path = os.path.join(output_dir, f"batch_{prefix}_{i+1}.pkl")
+        with open(f"{batch_path}/{prefix}", "wb") as f:
+            pickle.dump(df_features_batch, f)
+
+        print(f"[OK] Batch {prefix} {i+1} saved to {batch_path}")
+        del df_features_batch
+        gc.collect()

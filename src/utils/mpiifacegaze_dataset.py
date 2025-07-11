@@ -9,7 +9,6 @@ from tqdm import tqdm
 import scipy.io as sio
 
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 
 from utils.utils import *
 
@@ -226,3 +225,37 @@ class FaceGazeDataset(Dataset):
 
         return (face_tensor, eye_left_tensor,
                 eye_right_tensor, face_grid_tensor, gaze)
+
+class FaceGazeBatchDataset(Dataset):
+    def __init__(self, pkl_file: str):
+        """
+        Dataset that loads a single pre-extracted feature batch from a .pkl file.
+
+        :param pkl_file: Path to a single .pkl file containing a list of samples.
+        """
+        self.pkl_file = pkl_file
+
+        if not os.path.exists(pkl_file):
+            raise FileNotFoundError(f"[ERROR] PKL file not found: {pkl_file}")
+
+        try:
+            with open(pkl_file, "rb") as f:
+                self.samples = pickle.load(f)
+        except Exception as e:
+            raise RuntimeError(f"[ERROR] Failed to load {pkl_file}: {e}")
+
+        print(f"[OK] Loaded {len(self.samples)} samples from {os.path.basename(pkl_file)}")
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+
+        face_tensor = torch.tensor(sample['face'], dtype=torch.float32).permute(2, 0, 1)
+        eye_left_tensor = torch.tensor(sample['eye_left'], dtype=torch.float32).permute(2, 0, 1)
+        eye_right_tensor = torch.tensor(sample['eye_right'], dtype=torch.float32).permute(2, 0, 1)
+        face_grid_tensor = torch.tensor(sample['face_grid'], dtype=torch.float32).view(1, -1)
+        gaze = torch.tensor(sample['gaze'], dtype=torch.float32)
+
+        return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor, gaze
