@@ -19,9 +19,7 @@ test:
 	$(PYTEST) $(TEST_PATH) -vv -W ignore::DeprecationWarning
 
 lib:
-	pip install torch==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121
-	pip install torchaudio==2.4.0+cu121 --index-url https://download.pytorch.org/whl/cu121
-	pip install torchvision==0.19.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+	conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia -y
 	pip install -r $(LIBS)
 
 clean:
