@@ -162,69 +162,32 @@ class MPIIFaceGazeDataset(Dataset):
         plt.show()
 
 class FaceGazeDataset(Dataset):
-    def __init__(self, dataframe, eye_crop_size=(64, 64), face_size=(224, 224), grid_size=25):
-        self.data = dataframe
-        self.eye_crop_size = eye_crop_size
-        self.face_size = face_size
-        self.grid_size = grid_size
-
-        self.face_mesh = mp.solutions.face_mesh.FaceMesh(static_image_mode=True,refine_landmarks=True, max_num_faces=1)
+    def __init__(self, df: pd.DataFrame, means: dict, face_mesh=None):
+        self.df = df.reset_index(drop=True)
+        self.means = means
+        self.face_mesh = face_mesh or mp.solutions.face_mesh.FaceMesh(
+            static_image_mode=True,
+            refine_landmarks=True,
+            max_num_faces=1
+        )
 
     def __len__(self):
-        return len(self.data)
+        return len(self.df)
 
     def __getitem__(self, idx):
-        row = self.data.iloc[idx]
-        img_path = row['img_path']
-        gaze_x, gaze_y = row['gaze_x'], row['gaze_y']
+        
+        row = self.df.iloc[idx]
+        img_path = row["img_path"]
+        
+        gaze = torch.tensor([row["gaze_x"], row["gaze_y"]], dtype=torch.float32)
 
-        img = cv2.imread(img_path)
-        if img is None:
-            with open("skipped_images.txt", "a") as f:
-                f.write(f"[NOT FOUND] {img_path}\n")
-            return None
-
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img_mp = self.face_mesh.process(img_rgb)
-
-        if not img_mp.multi_face_landmarks:
-            with open("skipped_images.txt", "a") as f:
-                f.write(f"[NO FACE] {img_path}\n")
-            return None
-
-        landmarks = img_mp.multi_face_landmarks[0]
-
-        h, w, _ = img.shape
-        points = [(int(pt.x * w), int(pt.y * h)) for pt in landmarks.landmark]
-
-        try:
-            left_eye_bbox = get_bounding_box(LEFT_EYE, points, w, h)
-            right_eye_bbox = get_bounding_box(RIGHT_EYE, points, w, h)
-            face_bbox = get_bounding_box(FACE_OVAL, points, w, h)
-
-            left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
-            right_eye_roi = preprocess_roi(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])
-            face_roi = preprocess_roi(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])
-
-        except Exception as e:
-            with open("skipped_images.txt", "a") as f:
-                f.write(f"[EXCEPTION] {img_path} -- {str(e)}\n")
-                f.write(f"left_eye : {len(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])} {left_eye_bbox}\n")
-                f.write(f"right_eye: {len(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])} {right_eye_bbox}\n")
-                f.write(f"face : {len(img[face_bbox[0]:face_bbox[2], face_bbox[1]:face_bbox[3]])} {face_bbox}\n")
-            return None
-
-        eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
-        eye_right_tensor = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1)
-        face_tensor = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1)
-
-        face_grid = generate_face_grid(face_bbox, img.shape)
-        face_grid_tensor = torch.tensor(face_grid, dtype=torch.float32).view(1, -1)
-
-        gaze = torch.tensor([gaze_x, gaze_y], dtype=torch.float32)
-
-        return (face_tensor, eye_left_tensor,
-                eye_right_tensor, face_grid_tensor, gaze)
+        features = extract_inputs_from_image(self.face_mesh, img_path, self.means)
+        
+        if features is None:
+            raise RuntimeError(f"Could not extract features from {img_path}")
+        
+        face, eye_left, eye_right, face_grid = features
+        return face, eye_left, eye_right, face_grid, gaze
 
 class FaceGazeBatchDataset(Dataset):
     def __init__(self, pkl_file: str):
@@ -252,10 +215,4 @@ class FaceGazeBatchDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
 
-        face_tensor = torch.tensor(sample['face'], dtype=torch.float32).permute(2, 0, 1)
-        eye_left_tensor = torch.tensor(sample['eye_left'], dtype=torch.float32).permute(2, 0, 1)
-        eye_right_tensor = torch.tensor(sample['eye_right'], dtype=torch.float32).permute(2, 0, 1)
-        face_grid_tensor = torch.tensor(sample['face_grid'], dtype=torch.float32).view(1, -1)
-        gaze = torch.tensor(sample['gaze'], dtype=torch.float32)
-
-        return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor, gaze
+        return sample['face'], sample['eye_left'], sample['eye_right'], sample['face_grid'], torch.tensor(sample['gaze'], dtype=torch.float32)

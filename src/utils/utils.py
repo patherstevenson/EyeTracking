@@ -23,6 +23,7 @@ from tqdm import tqdm
 import pandas as pd
 import pickle
 import os
+from sklearn.model_selection import GroupKFold
 
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, GAZE_RANGE_CM, MID_X, MID_Y
 
@@ -211,46 +212,77 @@ def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
         12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
     }
 
-def extract_inputs_from_image(
-    face_mesh,
-    img_path: str,
-    means: dict
-):
+def get_groupwise_train_test_split(
+    df_clean: pd.DataFrame,
+    subject_col: str = "subject",
+    img_col: str = "img_path",
+    gaze_cols: Tuple[str, str] = ("gaze_x", "gaze_y"),
+    n_splits: int = 5,
+    fold_index: int = 0
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Extracts face, eye and grid inputs from image and subtracts precomputed mean tensors.
+    Effectue une séparation train/test groupée à l'aide de GroupKFold
+    en garantissant qu'aucun sujet n'apparaît à la fois dans l'entraînement et le test.
 
-    :param face_mesh: Initialized MediaPipe face_mesh object
-    :param img_path: Path to the image file
-    :param means: Dictionary with keys 'face', 'eye_left', 'eye_right', each a 3xHxW torch tensor
-    :return: Tuple (face_tensor, left_eye_tensor, right_eye_tensor, face_grid_tensor)
+    :param df_clean: DataFrame nettoyé contenant au moins les colonnes sujet, img_path et gaze.
+    :param subject_col: Nom de la colonne identifiant les groupes (sujets).
+    :param img_col: Nom de la colonne contenant les chemins d’images.
+    :param gaze_cols: Tuple contenant les noms des colonnes de coordonnées du regard.
+    :param n_splits: Nombre de splits (par défaut 5).
+    :param fold_index: Index du split à utiliser (entre 0 et n_splits - 1).
+
+    :return: Tuple contenant df_train et df_test pour le split spécifié.
     """
+    groups = np.array(df_clean[subject_col])
+    X = np.array(df_clean[img_col])
+    y = np.array(df_clean[list(gaze_cols)])
 
-    assert all(k in means for k in ['face', 'eye_left', 'eye_right']), \
-        "Means dictionary must contain keys: 'face', 'eye_left', 'eye_right'"
+    gkf = GroupKFold(n_splits=n_splits)
+    splits = list(gkf.split(X, y, groups))
 
+    if fold_index < 0 or fold_index >= n_splits:
+        raise ValueError(f"fold_index doit être entre 0 et {n_splits - 1} (reçu {fold_index})")
+
+    train_idx, test_idx = splits[fold_index]
+    df_train = df_clean.iloc[train_idx].reset_index(drop=True)
+    df_test = df_clean.iloc[test_idx].reset_index(drop=True)
+
+    return df_train, df_test
+
+def extract_inputs_from_image(face_mesh, img_path: str, means: dict) -> tuple | None:
+    """
+    Extracts facial features and normalizes them using provided means.
+
+    :param face_mesh: Initialized MediaPipe face mesh detector.
+    :param img_path: Path to the image.
+    :param means: Dictionary of mean tensors for 'face', 'eye_left', 'eye_right'.
+    :return: Tuple of normalized tensors (face, eye_left, eye_right, face_grid) or None.
+    """
     try:
         img = cv2.imread(img_path)
+        if img is None:
+            raise ValueError("Image not found or unreadable")
+
         image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_mp = face_mesh.process(image_rgb)
-
         if not img_mp.multi_face_landmarks:
-            return None
+            raise ValueError("No face landmarks detected")
 
         landmarks = img_mp.multi_face_landmarks[0]
         h, w, _ = img.shape
         points = [(int(pt.x * w), int(pt.y * h)) for pt in landmarks.landmark]
 
-        # Get bounding boxes
+        # Bounding boxes
         left_eye_bbox = get_bounding_box(LEFT_EYE, points, w, h)
         right_eye_bbox = get_bounding_box(RIGHT_EYE, points, w, h)
         face_bbox = get_bounding_box(FACE_OVAL, points, w, h)
 
-        # Extract ROIs and preprocess
+        # Preprocess ROIs
         left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
         right_eye_roi = preprocess_roi(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])
         face_roi = preprocess_roi(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])
 
-        # Convert to tensors
+        # Convert to tensors and normalize with means
         face_tensor = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['face'])
         eye_left_tensor = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['eye_left'])
         eye_right_tensor = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(means['eye_right'])
@@ -262,7 +294,15 @@ def extract_inputs_from_image(
         return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor
 
     except Exception as e:
-        print(f"[EXCEPTION] {img_path} -> {e}")
+        try:
+            with open("skipped_images.txt", "a") as f:
+                f.write(f"[EXCEPTION] {img_path} -- {str(e)}\n")
+                #if 'img' in locals():
+                #    f.write(f"left_eye : {len(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])} {left_eye_bbox}\n")
+                #    f.write(f"right_eye: {len(img[right_eye_bbox[1]:right_eye_bbox[3], right_eye_bbox[0]:right_eye_bbox[2]])} {right_eye_bbox}\n")
+                #    f.write(f"face     : {len(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])} {face_bbox}\n")
+        except Exception as logging_error:
+            print(f"[WARNING] Could not log skipping info for {img_path}: {logging_error}")
         return None
 
 def extract_and_save_batches(
@@ -273,6 +313,7 @@ def extract_and_save_batches(
     batch_size: int = 1000,
     image_col: str = "img_path",
     gaze_cols: Union[tuple, list] = ("gaze_x", "gaze_y"),
+    mat_dir: str = None,
 ):
     """
     Extracts MediaPipe features from a DataFrame and saves them in .pkl batches.
@@ -284,9 +325,14 @@ def extract_and_save_batches(
     :param image_col: name of the column containing the image path
     :param gaze_cols: names of the columns containing gaze coordinates
     :param prefix: prefix for the saved batch filenames
+    :param mat_dir: directory where the .mat files are located (default: src/mat)
     """
 
     os.makedirs(output_dir, exist_ok=True)
+
+    if mat_dir is None:
+        current_file = os.path.abspath(__file__)
+        mat_dir = os.path.normpath(os.path.join(os.path.dirname(current_file), "..", "mat"))
 
     face_mesh = mp.solutions.face_mesh.FaceMesh(
         static_image_mode=True,
@@ -294,14 +340,15 @@ def extract_and_save_batches(
         max_num_faces=1
     )
 
-    meta = loadMetadata("metadata.mat")
+    meta_face = sio.loadmat(os.path.join(mat_dir, "mean_face_224_MPIIFace.mat"))
+    meta_left = sio.loadmat(os.path.join(mat_dir, "mean_left_224_MPIIFace.mat"))
+    meta_right = sio.loadmat(os.path.join(mat_dir, "mean_right_224_MPIIFace.mat"))
 
     means = {
-        "face": torch.tensor(meta["mean_face"], dtype=torch.float32),         # shape (3, H, W)
-        "eye_left": torch.tensor(meta["mean_left"], dtype=torch.float32),     # shape (3, H, W)
-        "eye_right": torch.tensor(meta["mean_right"], dtype=torch.float32),   # shape (3, H, W)
+        "face": torch.tensor(meta_face["mean_face"], dtype=torch.float32),
+        "eye_left": torch.tensor(meta_left["mean_eye_left"], dtype=torch.float32),
+        "eye_right": torch.tensor(meta_right["mean_eye_right"], dtype=torch.float32),
     }
-
 
     num_rows = len(df)
     num_batches = (num_rows + batch_size - 1) // batch_size
@@ -338,8 +385,8 @@ def extract_and_save_batches(
                 print(f"[ERROR] Failed on {img_path}: {e}")
                 continue
 
-        batch_path = os.path.join(output_dir, f"batch_{prefix}_{i+1}.pkl")
-        with open(f"{batch_path}/{prefix}", "wb") as f:
+        batch_path = os.path.join(output_dir, f"{prefix}/batch_{prefix}_{i+1}.pkl")
+        with open(batch_path, "wb") as f:
             pickle.dump(df_features_batch, f)
 
         print(f"[OK] Batch {prefix} {i+1} saved to {batch_path}")

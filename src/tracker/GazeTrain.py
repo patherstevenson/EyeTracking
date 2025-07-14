@@ -71,7 +71,7 @@ def GazeTrain(
 
         # ========== TRAIN ==========
         for pkl_file in tqdm(train_files, desc="Training on batches"):
-            dataset = FaceGazeBatchDataset(pkl_file, max_files=1, shuffle=True)  # ← pkl_file = single .pkl path
+            dataset = FaceGazeBatchDataset(pkl_file)
             dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
             for batch in dataloader:
@@ -95,7 +95,7 @@ def GazeTrain(
         val_samples = 0
         with torch.no_grad():
             for pkl_file in tqdm(test_files, desc="Validating on batches"):
-                dataset = FaceGazeBatchDataset(pkl_file, max_files=1, shuffle=False)
+                dataset = FaceGazeBatchDataset(pkl_file)
                 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
 
                 for batch in dataloader:
