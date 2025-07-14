@@ -25,7 +25,7 @@ We use **Conda** to manage the development environment.
 To create the environment, run:
 
 ```bash
-$ conda create -n pfe python=3.12
+$ conda create -n pfe python=3.10
 $ conda activate pfe
 ```
 
