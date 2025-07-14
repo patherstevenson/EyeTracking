@@ -190,7 +190,7 @@ class FaceGazeDataset(Dataset):
         return face, eye_left, eye_right, face_grid, gaze
 
 class FaceGazeBatchDataset(Dataset):
-    def __init__(self, pkl_file: str):
+    def __init__(self, pkl_file: str, verbose=False):
         """
         Dataset that loads a single pre-extracted feature batch from a .pkl file.
 
@@ -207,7 +207,7 @@ class FaceGazeBatchDataset(Dataset):
         except Exception as e:
             raise RuntimeError(f"[ERROR] Failed to load {pkl_file}: {e}")
 
-        print(f"[OK] Loaded {len(self.samples)} samples from {os.path.basename(pkl_file)}")
+        if verbose: print(f"[OK] Loaded {len(self.samples)} samples from {os.path.basename(pkl_file)}")
 
     def __len__(self):
         return len(self.samples)

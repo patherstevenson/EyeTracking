@@ -43,17 +43,6 @@ def GazeTrain(
     :param device: 'cuda' or 'cpu'
     :return: Trained GazeModel
     """
-    """
-    Train gaze model by loading one .pkl batch at a time to save RAM.
-
-    :param root_dir: Directory with 'train/' and 'test/' folders containing .pkl feature files.
-    :param model_save_path: Path to save the trained model.
-    :param epochs: Number of training epochs.
-    :param batch_size: Batch size.
-    :param learning_rate: Learning rate.
-    :param device: Training device.
-    :return: Trained GazeModel instance.
-    """
     train_dir = os.path.join(root_dir, "train/")
     test_dir = os.path.join(root_dir, "test/")
     train_files = sorted([os.path.join(train_dir, f) for f in os.listdir(train_dir) if f.endswith(".pkl")])
@@ -61,7 +50,7 @@ def GazeTrain(
 
     model = GazeModel().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    criterion = nn.MSELoss()
+    criterion = nn.SmoothL1Loss()
 
     for epoch in range(epochs):
         print(f"\nEpoch {epoch+1}/{epochs}")
