@@ -14,7 +14,7 @@ It processes the data, constructs the training pipeline, and trains the GazeMode
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader 
 from tqdm import tqdm
 
 from tracker import GazeModel 
@@ -22,7 +22,6 @@ from utils.mpiifacegaze_dataset import *
 
 def GazeTrain(
     root_dir: str,
-    model_save_path: str = "../models/itracker_mpiiface_gradient.pth",
     epochs: int = 15,
     batch_size: int = 8,
     learning_rate: float = 1e-4,
@@ -99,6 +98,6 @@ def GazeTrain(
         print(f"→ Val Loss: {avg_val_loss:.6f}")
 
     # Save final model
-    torch.save(model.state_dict(), model_save_path)
-    print(f"\nModel saved to: {model_save_path}")
+    #torch.save(model.state_dict(), model_save_path)
+    #print(f"\nModel saved to: {model_save_path}")
     return model
