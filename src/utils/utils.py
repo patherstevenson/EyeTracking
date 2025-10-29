@@ -289,7 +289,7 @@ def extract_inputs_from_image(face_mesh, img_path: str, means: dict) -> tuple | 
 
         # Face grid
         face_grid = generate_face_grid(face_bbox, img.shape)
-        face_grid_tensor = torch.tensor(face_grid, dtype=torch.float32).view(1, -1)
+        face_grid_tensor = torch.tensor(face_grid, dtype=torch.float32).view(-1)    
 
         return face_tensor, eye_left_tensor, eye_right_tensor, face_grid_tensor
 

@@ -163,29 +163,44 @@ class MPIIFaceGazeDataset(Dataset):
 
 class FaceGazeDataset(Dataset):
     def __init__(self, df: pd.DataFrame, means: dict, face_mesh=None):
+        """
+        df      : DataFrame avec colonnes ['subject', 'img_path', 'gaze_x', 'gaze_y']
+        means   : dict {'face': T(3,224,224), 'eye_left': T(3,224,224), 'eye_right': T(3,224,224)}
+        face_mesh : laisser None en multi-worker ; il sera initialisé paresseusement.
+        """
         self.df = df.reset_index(drop=True)
         self.means = means
-        self.face_mesh = face_mesh or mp.solutions.face_mesh.FaceMesh(
-            static_image_mode=True,
-            refine_landmarks=True,
-            max_num_faces=1
-        )
+        # Important : ne pas construire FaceMesh ici si DataLoader utilise des workers
+        # car l'objet n'est pas picklable. On le créera paresseusement dans __getitem__.
+        self.face_mesh = face_mesh  # None conseillé pour multi-worker
+        self._mp_inited = False
 
     def __len__(self):
         return len(self.df)
 
+    def _lazy_init_mp(self):
+        if not self._mp_inited or self.face_mesh is None:
+            # Initialisation par worker (processus) au premier accès
+            self.face_mesh = mp.solutions.face_mesh.FaceMesh(
+                static_image_mode=True,
+                refine_landmarks=True,
+                max_num_faces=1
+            )
+            self._mp_inited = True
+
     def __getitem__(self, idx):
-        
+        # Initialisation paresseuse de MediaPipe dans le worker
+        if self.face_mesh is None or not self._mp_inited:
+            self._lazy_init_mp()
+
         row = self.df.iloc[idx]
         img_path = row["img_path"]
-        
         gaze = torch.tensor([row["gaze_x"], row["gaze_y"]], dtype=torch.float32)
 
         features = extract_inputs_from_image(self.face_mesh, img_path, self.means)
-        
         if features is None:
             raise RuntimeError(f"Could not extract features from {img_path}")
-        
+
         face, eye_left, eye_right, face_grid = features
         return face, eye_left, eye_right, face_grid, gaze
 
