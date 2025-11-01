@@ -1,18 +1,4 @@
-# PFE Eye Tracking
-
-2025 - Master 2 Machine Learning - PFE
-
-## Author
-
-- **Stevenson Pather**  
-  M2 Machine Learning Student​  
-  University of Lille 
-
-## Supervisor
-
-- **Deise Santana Maia, Ph.D.**  
-  Assistant Associate Professor, 3DSAM CRIStAL, IUT A​  
-  University of Lille  
+# EyeTheia
 
 ## Project Overview
 
@@ -82,8 +68,7 @@ EyeTracking/
 │   │   ├── mean_face_224.mat   # Mean face data
 │   │   ├── mean_left_224.mat   # Mean left eye data
 │   │   └── mean_right_224.mat  # Mean right eye data
-│   ├── models/                 # Pre-trained and fine-tuned gaze tracking models
-│   │   └── checkpoint.pth.tar  # Saved model checkpoint
+│   ├── models/                 # Saved model checkpoint
 │   ├── tracker/                # Core modules for gaze tracking
 │   │   ├── Calibration.py      # Calibration process for improving model accuracy
 │   │   ├── GazeDataLogger.py   # Handles logging of gaze tracking data
