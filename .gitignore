@@ -8,3 +8,4 @@ doc/
 .conda
 node_modules/
 dataset/
+notebooks/figures/
