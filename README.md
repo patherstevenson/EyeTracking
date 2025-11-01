@@ -35,9 +35,32 @@ To install all dependencies:
 $ make lib
 ```
 
-Dataset can be download here :
+The dataset can be downloaded from the following link :
 
 * [dataset](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIGaze.tar.gz)
+
+Once downloaded, it should be placed in the dataset/ folder located at the root of the project.
+
+## Documentation
+
+We use **Sphinx** to generate project documentation.  
+To build the documentation:
+
+```bash
+$ make doc
+```
+
+The generated HTML files will be available in the `docs/_build/html/` directory.
+
+The complete presentation of the project will be avaible in the `docs/_build/html/index.html` page.
+
+## Testing
+
+To run unit tests:
+
+```bash
+$ make test
+```
 
 ## Project Structure
 
@@ -73,20 +96,7 @@ EyeTracking/
 │       ├── config.py           # Configuration parameters (screen size, calibration settings)
 │       ├── utils.py            # Helper functions for preprocessing and gaze tracking
 ├── tests/                      # Unit tests for the project
-│   ├── test_Calibration.py     # Tests for the Calibration module
-│   ├── test_GazeDataLogger.py  # Tests for GazeDataLogger
-│   ├── test_GazeModel.py       # Tests for GazeModel
-│   ├── test_GazeTracker.py     # Tests for GazeTracker
-│   ├── test_utils.py           # Tests for utility functions
 └── docs/                       # Sphinx documentation (to be generated)
-```
-
-## Installation & Dependencies
-
-Install project dependencies:
-
-```bash
-$ make lib
 ```
 
 ## VM User Webcam
@@ -96,27 +106,6 @@ If you are using a **virtual machine (VM)** such as **WSL2**, please refer to th
 
 This section provides detailed instructions on how to stream your webcam using **MJPEG Streamer**  
 and configure the environment variable `WEBCAM_URL` to enable webcam support in the project.
-
-## Documentation
-
-We use **Sphinx** to generate project documentation.  
-To build the documentation:
-
-```bash
-$ make doc
-```
-
-The generated HTML files will be available in the `docs/_build/html/` directory.
-
-The complete presentation of the project will be avaible in the `docs/_build/html/index.html` page.
-
-## Testing
-
-To run unit tests:
-
-```bash
-$ make test
-```
 
 ## License
 
