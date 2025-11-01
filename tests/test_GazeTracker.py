@@ -11,8 +11,8 @@ from tracker.GazeDataLogger import GazeDataLogger
 
 # Test initialization
 def test_gaze_tracker_init():
-    with patch("tracker.GazeTracker.GazeTracker._load_model", return_value=None), \
-         patch("tracker.GazeDataLogger.GazeDataLogger", autospec=True) as mock_gaze_logger:
+    with patch("tracker.GazeTracker._load_model", return_value=None), \
+         patch("tracker.GazeDataLogger", autospec=True) as mock_gaze_logger:
         
         mock_gaze_logger.return_value = MagicMock()
         tracker = GazeTracker()

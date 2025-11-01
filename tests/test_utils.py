@@ -22,7 +22,7 @@ def test_loadMetadata():
 def test_get_bounding_box():
     landmarks = [(50, 50), (100, 100), (150, 150)]
     indices = [0, 2]
-    bbox = get_bounding_box(indices, landmarks, 10, 10)
+    bbox = get_bounding_box(indices, landmarks, x_margin=10, y_margin=10)
     assert bbox == (40, 40, 160, 160)
 
 # Test preprocess_roi
