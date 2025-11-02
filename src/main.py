@@ -36,7 +36,7 @@ def main() -> None:
         print("Unable to open webcam. Please check your device or URL.")
         return
 
-    gaze_tracker = GazeTracker()
+    gaze_tracker = GazeTracker(model_path="itracker_baseline.tar")
 
     try:
         gaze_tracker.run(webcam)
