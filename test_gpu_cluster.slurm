@@ -11,6 +11,8 @@
 module purge
 module load conda/23.11-py311
 conda activate eyetheia
+pip uninstall -y opencv-python
+pip install opencv-python-headless==4.11.0.86
 
 python3 - <<'EOF'
 import torch
