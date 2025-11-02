@@ -267,7 +267,13 @@ class GazeTracker:
             gaze_x, gaze_y = gaze_prediction.cpu().numpy().flatten()
 
             # Convert to pixel coordinates
-            pos_x, pos_y = gaze_cm_to_pixels(gaze_x, gaze_y)
+            match self.mp:
+                case "itracker_mpiiface.tar":
+                    pos_x, pos_y = denormalized_MPIIFaceGaze(gaze_x, gaze_y, SCREEN_WIDTH, SCREEN_HEIGHT)
+                case "itracker_baseline.tar":
+                    pos_x, pos_y = gaze_cm_to_pixels(gaze_x, gaze_y)
+                case _:
+                    pass
 
             # Determine the position on the screen
             position = self._determine_position(pos_x, pos_y)
@@ -277,7 +283,7 @@ class GazeTracker:
             self.logger.log_data(pos_x, pos_y)
 
             print(
-                f"Gaze Position (cm): ({gaze_x:.2f}, {gaze_y:.2f}) - {quadrant}, "
+                f"Gaze Prediction : ({gaze_x:.2f}, {gaze_y:.2f}) - {quadrant}, "
                 f"Pixels (x,y): ({pos_x}, {pos_y}) - {position}"
             )
 
@@ -311,7 +317,7 @@ class GazeTracker:
 
                 if img_mp.multi_face_landmarks:
                     for face_landmarks in img_mp.multi_face_landmarks:
-                        face_input, left_eye_input, right_eye_input, face_grid_input = self.extract_features(img, face_landmarks)
+                        face_input, left_eye_input, right_eye_input, face_grid_input = self.extract_features(img, face_landmarks, SCREEN_WIDTH, SCREEN_HEIGHT)
                         self.predict_gaze(face_input, left_eye_input, right_eye_input, face_grid_input)
 
                 cv2.imshow("Face Mesh with Gaze Prediction", img)
