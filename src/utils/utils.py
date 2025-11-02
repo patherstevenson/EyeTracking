@@ -212,6 +212,35 @@ def get_numbered_calibration_points() -> Dict[int, Tuple[int, int]]:
         12: (int(SCREEN_WIDTH * 0.9) , int(SCREEN_HEIGHT * 0.9)),
     }
 
+def normalize_MPIIFaceGaze(x_pixel: float, y_pixel: float, screen_width: int, screen_height: int) -> tuple[float, float]:
+    """
+    Normalise les coordonnées du regard en les exprimant entre 0 et 1
+    par rapport à la taille de l’écran.
+
+    :param x_pixel: Coordonnée x du regard en pixels
+    :param y_pixel: Coordonnée y du regard en pixels
+    :param screen_width: Largeur de l’écran en pixels
+    :param screen_height: Hauteur de l’écran en pixels
+    :return: Tuple (x_norm, y_norm) avec des valeurs entre 0 et 1
+    """
+    x_norm = x_pixel / screen_width
+    y_norm = y_pixel / screen_height
+    return x_norm, y_norm
+
+def denormalized_MPIIFaceGaze(x_norm: float, y_norm: float, screen_width: int, screen_height: int) -> Tuple[int, int]:
+    """
+    Convert normalized gaze coordinates back to pixel coordinates.
+
+    :param x_norm: Normalized x in [0, 1]
+    :param y_norm: Normalized y in [0, 1]
+    :param screen_width: Screen width in pixels
+    :param screen_height: Screen height in pixels
+    :return: Gaze coordinates in pixels (x, y)
+    """
+    x = int(round(x_norm * screen_width))
+    y = int(round(y_norm * screen_height))
+    return x, y
+
 def get_groupwise_train_test_split(
     df_clean: pd.DataFrame,
     subject_col: str = "subject",
