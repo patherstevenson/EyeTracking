@@ -7,32 +7,27 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --time=48:00:00
-#SBATCH --partition=gpu
-#SBATCH --qos=normal
-
+#SBATCH --partition=gpuai
+#SBATCH --qos=gpu-big
 
 module purge
-module load anaconda/2023.09  
-source activate gazecluster
-
+module load conda/23.11-py311
+conda activate eyetheia
 
 BETAS=(0.01 0.02 0.05 0.10 0.20 0.40 0.50 0.60 0.70 0.80 0.90 1.00)
 DELTA=${BETAS[$SLURM_ARRAY_TASK_ID]}
 
-
-PROJECT_DIR=$HOME/Calypso  # chemin racine du projet
+PROJECT_DIR=$HOME/EyeTheia
 CHECKPOINT_DIR=$PROJECT_DIR/checkpoints/beta_${DELTA}
 LOG_DIR=$PROJECT_DIR/logs
 mkdir -p $CHECKPOINT_DIR
 mkdir -p $LOG_DIR
-
 
 echo "-----------------------------------------------"
 echo " Job ID: $SLURM_JOB_ID (Task: $SLURM_ARRAY_TASK_ID)"
 echo " Running SmoothL1 delta = ${DELTA}"
 echo " Checkpoints -> ${CHECKPOINT_DIR}"
 echo "-----------------------------------------------"
-
 
 cd $PROJECT_DIR/src
 python3 main_train.py \
@@ -51,7 +46,6 @@ python3 main_train.py \
     --save-every 1 \
     --resume auto \
     --smooth-l1-delta ${DELTA}
-
 
 echo "-----------------------------------------------"
 echo " Beta ${DELTA} training complete"
