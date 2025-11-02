@@ -11,8 +11,8 @@ We use **Conda** to manage the development environment.
 To create the environment, run:
 
 ```bash
-$ conda create -n pfe python=3.10
-$ conda activate pfe
+$ conda create -n eyetheia python=3.10
+$ conda activate eyetheia
 ```
 
 To install all dependencies:
@@ -23,7 +23,7 @@ $ make lib
 
 The dataset can be downloaded from the following link :
 
-* [dataset](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIGaze.tar.gz)
+* [dataset](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIFaceGaze.zip)
 
 Once downloaded, it should be placed in the dataset/ folder located at the root of the project.
 
