@@ -15,7 +15,7 @@ def test_gaze_tracker_init():
          patch("tracker.GazeDataLogger", autospec=True) as mock_gaze_logger:
         
         mock_gaze_logger.return_value = MagicMock()
-        tracker = GazeTracker()
+        tracker = GazeTracker(model_path="itracker_baseline.tar")
     
     assert isinstance(tracker.model, GazeModel)
     assert isinstance(tracker.logger, GazeDataLogger)
@@ -23,11 +23,11 @@ def test_gaze_tracker_init():
 
 # Test _determine_position and _determine_quadrant
 def test_gaze_tracker_determine_position():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     assert tracker._determine_position(100, 100) in ["Top Left", "Top Right", "Bottom Left", "Bottom Right", "Center"]
 
 def test_gaze_tracker_determine_quadrant():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     assert tracker._determine_quadrant(-0.5, 0.5) == "Top Left"
     assert tracker._determine_quadrant(0.5, 0.5) == "Top Right"
     assert tracker._determine_quadrant(-0.5, -0.5) == "Bottom Left"
@@ -36,7 +36,7 @@ def test_gaze_tracker_determine_quadrant():
 
 # Test gaze prediction
 def test_gaze_tracker_predict_gaze():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     tracker.model = MagicMock()
     tracker.logger = MagicMock()
     
@@ -55,7 +55,7 @@ def test_gaze_tracker_predict_gaze():
 
 # Test extract_features
 def test_gaze_tracker_extract_features():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     tracker.extract_features = MagicMock(return_value=(torch.randn(1, 3, 224, 224), torch.randn(1, 3, 224, 224), torch.randn(1, 3, 224, 224), torch.randn(1, 25, 25)))
     
     img_mock = torch.randn(224, 224, 3)  # Fake image
@@ -69,7 +69,7 @@ def test_gaze_tracker_extract_features():
 
 # Test train
 def test_gaze_tracker_train():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     tracker.train = MagicMock()
     dataset_mock = MagicMock()
     tracker.train(dataset_mock, epochs=1, learning_rate=0.001, batch_size=2)
@@ -77,7 +77,7 @@ def test_gaze_tracker_train():
 
 # Test save tracking data
 def test_gaze_tracker_save_tracking_data():
-    tracker = GazeTracker()
+    tracker = GazeTracker(model_path="itracker_baseline.tar")
     tracker.logger = MagicMock()
     
     tracker.save_tracking_data()
