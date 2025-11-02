@@ -5,7 +5,8 @@ from unittest.mock import MagicMock
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from tracker.Calibration import CalibrationDataset, Calibration
+from tracker.Calibration import Calibration
+from tracker.CalibrationDataset import CalibrationDataset
 
 # Test CalibrationDataset
 def test_calibration_dataset():
