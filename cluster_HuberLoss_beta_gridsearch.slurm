@@ -29,10 +29,9 @@ echo " Running SmoothL1 delta = ${DELTA}"
 echo " Checkpoints -> ${CHECKPOINT_DIR}"
 echo "-----------------------------------------------"
 
-cd $PROJECT_DIR/src
-python3 main_train.py \
+python3 src/main_train.py \
     --data-mode img \
-    --img-root ../dataset/MPIIFaceGaze \
+    --img-root dataset/MPIIFaceGaze \
     --epochs 15 \
     --batch-size 8 \
     --learning-rate 1e-4 \
