@@ -8,6 +8,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import scipy.io
+import pandas as pd
 
 from tracker.GazeModel import GazeModel
 from utils.mpiifacegaze_dataset import *
@@ -121,6 +122,18 @@ def GazeTrain(
     else:  # Full image mode (cluster)
         dataset_full = MPIIFaceGazeDataset(img_root)
         df = dataset_full.to_dataframe()
+        
+        # Load the CSV of skipped images
+        skip_csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "notebooks", "skipped_images.csv")
+        if os.path.exists(skip_csv_path):
+            skipped_df = pd.read_csv(skip_csv_path)
+            skipped_images = set(skipped_df["img_path"].str.replace("../", "", regex=False))
+            print(f"Skipping {len(skipped_images)} problematic images listed in skipped_images.csv")
+
+            df = df[~df["img_path"].str.contains("|".join(skipped_images))].reset_index(drop=True)
+        else:
+            print("Warning: skipped_images.csv not found — proceeding with all images.")
+    
         df_train, df_test = get_groupwise_train_test_split(df, fold_index=0)
 
         mat_dir = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "mat"))
