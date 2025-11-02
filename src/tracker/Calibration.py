@@ -175,15 +175,15 @@ class Calibration:
                 error =  np.linalg.norm(np.array([gaze_x_pred, gaze_y_pred]) - np.array([gaze_x_true, gaze_y_true]))
                 total_errors.append(error)
 
-                print(f"True Gaze: ({gaze_x_true:.2f}, {gaze_y_true:.2f}) cm, "
-                      f"Predicted Gaze: ({gaze_x_pred:.2f}, {gaze_y_pred:.2f}) cm, "
-                      f"Error: {error:.2f} cm")
+                print(f"True Gaze: ({gaze_x_true:.2f}, {gaze_y_true:.2f}), "
+                      f"Predicted Gaze: ({gaze_x_pred:.2f}, {gaze_y_pred:.2f}), "
+                      f"Error: {error:.2f}")
 
         # Compute mean and standard deviation
         mean_error = np.mean(total_errors)
         std_error = np.std(total_errors)
 
-        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f} cm, Std Dev = {std_error:.2f} cm\n")
+        print(f"\nCalibration Accuracy: Mean Error = {mean_error:.2f}, Std Dev = {std_error:.2f}\n")
 
         return mean_error, std_error
 
@@ -219,7 +219,7 @@ class Calibration:
 
                 if img_mp.multi_face_landmarks:
                     for face_landmarks in img_mp.multi_face_landmarks:
-                        face_input, left_eye_input, right_eye_input, face_grid_input = self.gaze_tracker.extract_features(img, face_landmarks)
+                        face_input, left_eye_input, right_eye_input, face_grid_input = self.gaze_tracker.extract_features(img, face_landmarks, SCREEN_WIDTH, SCREEN_HEIGHT)
 
                         if self.current_target:
                             user_x, user_y = self.current_target
