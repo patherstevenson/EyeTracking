@@ -226,7 +226,7 @@ class Calibration:
                             gaze_x, gaze_y = pixels_to_gaze_cm(user_x, user_y)
 
                             self.capture_points.append(((face_input, left_eye_input, right_eye_input, face_grid_input), (gaze_x, gaze_y)))
-                            print(f"Captured: Screen ({user_x}, {user_y}) → Gaze ({gaze_x:.2f}, {gaze_y:.2f}) cm")
+                            print(f"Captured: Screen ({user_x}, {user_y}) → Gaze ({gaze_x:.2f}, {gaze_y:.2f})")
 
                             self.current_target = None
 
