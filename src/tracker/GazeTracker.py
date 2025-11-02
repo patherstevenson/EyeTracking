@@ -46,13 +46,12 @@ class GazeTracker:
         :type model_path: str, optional
         """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-        if model_path is None:
-            model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../models/checkpoint.pth.tar"))
+        self.mp = model_path
+        self.model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), f"../models/{model_path}"))
 
         self._load_mean()
         self.model = GazeModel()
-        self._load_model(model_path)
+        self._load_model(self.model_path)
         self.logger = GazeDataLogger()
         self.margin: int = 20
         self.calibration = Calibration(self)
@@ -64,7 +63,13 @@ class GazeTracker:
         :param model_path: Path to the model checkpoint.
         :type model_path: str
         """
-        print(f"\n-----------------\nDevice : {torch.cuda.get_device_name(torch.cuda.current_device())}\n-----------------\n")
+        match self.device:
+            case "cuda":
+                print(f"\n-----------------\nDevice : {torch.cuda.get_device_name(torch.cuda.current_device())}\n-----------------\n")
+            case "cpu":
+                print(f"\n-----------------\nDevice : CPU\n-----------------\n")
+            case _:
+                pass
 
         checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
         self.model.load_state_dict(checkpoint['state_dict'], strict=False)
@@ -77,10 +82,18 @@ class GazeTracker:
         """
         mean_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../mat/"))
 
-        self.faceMean = loadMetadata(os.path.join(mean_path, 'mean_face_224.mat'))['image_mean']
-        self.eyeLeftMean = loadMetadata(os.path.join(mean_path, 'mean_left_224.mat'))['image_mean']
-        self.eyeRightMean = loadMetadata(os.path.join(mean_path, 'mean_right_224.mat'))['image_mean']
-
+        match self.mp:
+            case "itracker_baseline.tar":
+                self.faceMean = loadMetadata(os.path.join(mean_path, 'mean_face_224.mat'))['image_mean']
+                self.eyeLeftMean = loadMetadata(os.path.join(mean_path, 'mean_left_224.mat'))['image_mean']
+                self.eyeRightMean = loadMetadata(os.path.join(mean_path, 'mean_right_224.mat'))['image_mean']
+            case "itracker_mpiiface.tar":
+                self.faceMean = loadMetadata(os.path.join(mean_path, 'mean_face_224_MPIIFace.mat'))['mean_face']
+                self.eyeLeftMean = loadMetadata(os.path.join(mean_path, 'mean_left_224_MPIIFace.mat'))['mean_eye_left']
+                self.eyeRightMean = loadMetadata(os.path.join(mean_path, 'mean_right_224_MPIIFace.mat'))['mean_eye_right']
+            case _ :
+                pass
+            
         self.faceMean = torch.tensor(self.faceMean / 255.0, dtype=torch.float32)
         self.eyeLeftMean = torch.tensor(self.eyeLeftMean / 255.0, dtype=torch.float32)
         self.eyeRightMean = torch.tensor(self.eyeRightMean / 255.0, dtype=torch.float32)
@@ -181,7 +194,7 @@ class GazeTracker:
         print("Fine-tuning complete.")
 
 
-    def extract_features(self, img: torch.Tensor, face_landmarks) -> tuple:
+    def extract_features(self, img: torch.Tensor, face_landmarks, SCREEN_WIDTH:int , SCREEN_HEIGHT: int) -> tuple:
         """
         Extracts facial features from the image using detected landmarks.
 
@@ -195,12 +208,9 @@ class GazeTracker:
         landmarks = [(int(pt.x * w), int(pt.y * h)) for pt in face_landmarks.landmark]
 
         # Bounding boxes for eyes and face
-        left_eye_bbox = get_bounding_box(LEFT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
-        right_eye_bbox = get_bounding_box(RIGHT_EYE, landmarks, x_margin=self.margin, y_margin=self.margin)
-        face_bbox = get_bounding_box(FACE_OVAL, landmarks, x_margin=self.margin, y_margin=self.margin)
-
-        # Draw bounding box rectangles
-        draw_bounding_boxes(img, face_bbox=face_bbox, left_eye_bbox=left_eye_bbox, right_eye_bbox=right_eye_bbox)
+        left_eye_bbox = get_bounding_box(LEFT_EYE, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
+        right_eye_bbox = get_bounding_box(RIGHT_EYE, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
+        face_bbox = get_bounding_box(FACE_OVAL, landmarks, SCREEN_WIDTH, SCREEN_HEIGHT, x_margin=self.margin, y_margin=self.margin)
 
         # Preprocess regions of interest
         left_eye_roi = preprocess_roi(img[left_eye_bbox[1]:left_eye_bbox[3], left_eye_bbox[0]:left_eye_bbox[2]])
@@ -208,11 +218,25 @@ class GazeTracker:
         face_roi = preprocess_roi(img[face_bbox[1]:face_bbox[3], face_bbox[0]:face_bbox[2]])
 
         # Generate inputs for the model
-        left_eye_input = torch.tensor(left_eye_roi, dtype=torch.float32).sub(self.eyeLeftMean).permute(0, 3, 1, 2).to(self.device)
-        right_eye_input = torch.tensor(right_eye_roi, dtype=torch.float32).sub(self.eyeRightMean).permute(0, 3, 1, 2).to(self.device)
-
+        match self.mp:
+            case "itracker_mpiiface.tar":
+                face_input = torch.tensor(face_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(self.faceMean).to(self.device)
+                left_eye_input = torch.tensor(left_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(self.eyeLeftMean).to(self.device)
+                right_eye_input = torch.tensor(right_eye_roi[0], dtype=torch.float32).permute(2, 0, 1).sub(self.eyeRightMean).to(self.device)
+                
+                face_input = face_input.unsqueeze(0)
+                left_eye_input = left_eye_input.unsqueeze(0)
+                right_eye_input = right_eye_input.unsqueeze(0)
+                
+            case "itracker_baseline.tar":
+                left_eye_input = torch.tensor(left_eye_roi, dtype=torch.float32).sub(self.eyeLeftMean).permute(0, 3, 1, 2).to(self.device)
+                right_eye_input = torch.tensor(right_eye_roi, dtype=torch.float32).sub(self.eyeRightMean).permute(0, 3, 1, 2).to(self.device)
+                face_input = torch.tensor(face_roi, dtype=torch.float32).sub(self.faceMean).permute(0, 3, 1, 2).to(self.device)
+            
+            case _:
+                pass
+      
         face_grid = generate_face_grid(face_bbox, img.shape)
-        face_input = torch.tensor(face_roi, dtype=torch.float32).sub(self.faceMean).permute(0, 3, 1, 2).to(self.device)
         face_grid_input = torch.tensor(face_grid, dtype=torch.float32).view(1, -1).to(self.device)
 
         return face_input, left_eye_input, right_eye_input, face_grid_input
