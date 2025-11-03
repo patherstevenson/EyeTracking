@@ -125,14 +125,19 @@ def GazeTrain(
         
         # Load the CSV of skipped images
         skip_csv_path = os.path.join(os.path.dirname(__file__), "..", "..", "notebooks", "skipped_images.csv")
+
         if os.path.exists(skip_csv_path):
-            skipped_df = pd.read_csv(skip_csv_path)
+            skipped_df = pd.read_csv(skip_csv_path, delimiter=" ")
+
             skipped_images = set(skipped_df["img_path"].str.replace("../", "", regex=False))
+
             print(f"Skipping {len(skipped_images)} problematic images listed in skipped_images.csv")
 
-            df = df[~df["img_path"].str.contains("|".join(skipped_images))].reset_index(drop=True)
+            # Exclude those images from the DataFrame
+            df = df[~df["img_path"].isin(skipped_images)].reset_index(drop=True)
         else:
             print("Warning: skipped_images.csv not found — proceeding with all images.")
+
     
         df_train, df_test = get_groupwise_train_test_split(df, fold_index=0)
 
