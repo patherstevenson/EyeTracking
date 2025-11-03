@@ -31,7 +31,7 @@ murmurhash==1.0.10
 namex==0.0.8
 networkx==3.2.1
 opt-einsum==3.3.0
-optree==0.12.1
+optree==0.13.0
 preshed==3.0.9
 protobuf==4.25.4
 psycopg2-binary==2.9.9
