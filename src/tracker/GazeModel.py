@@ -51,7 +51,7 @@ class FeatureImageModel(nn.Module):
         :return: Extracted features as a flattened tensor.
         """
         x = self.features(x)
-        x = x.view(x.size(0), -1)
+        x = x.reshape(x.size(0), -1)
         return x
 
 
