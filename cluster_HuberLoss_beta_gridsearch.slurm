@@ -12,7 +12,7 @@
 
 module purge
 module load conda/23.11-py311
-source /home/stevenson.pather/.conda/envs/eyetheia/bin/activate
+conda activate eyetheia
 
 BETAS=(0.01 0.02 0.05 0.10 0.20 0.40 0.50 0.60 0.70 0.80 0.90 1.00)
 DELTA=${BETAS[$SLURM_ARRAY_TASK_ID]}
@@ -35,6 +35,7 @@ python3 src/main_train.py \
     --epochs 15 \
     --batch-size 8 \
     --learning-rate 1e-4 \
+    --smooth-l1-delta ${DELTA} \
     --num-workers 8 \
     --prefetch-factor 2 \
     --pin-memory \
@@ -43,8 +44,7 @@ python3 src/main_train.py \
     --channels-last \
     --checkpoint-dir $CHECKPOINT_DIR \
     --save-every 1 \
-    --resume auto \
-    --smooth-l1-delta ${DELTA}
+    --resume auto
 
 echo "-----------------------------------------------"
 echo " Beta ${DELTA} training complete"
