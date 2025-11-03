@@ -28,6 +28,7 @@ def parse_args():
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--smooth-l1-delta",type=float,default=1.0,help="Delta parameter for SmoothL1Loss (Huber loss)")
     parser.add_argument("--grad-accum", type=int, default=1)
     parser.add_argument("--amp", action="store_true", help="Use automatic mixed precision training.")
     parser.add_argument("--channels-last", action="store_true", help="Use channels_last memory format (may boost performance).")
