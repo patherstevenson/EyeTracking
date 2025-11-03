@@ -9,3 +9,5 @@ doc/
 node_modules/
 dataset/
 notebooks/figures/
+logs/
+checkpoints/
