@@ -2,8 +2,11 @@
 
 ## Project Overview
 
-This project focuses on **eye tracking** using machine learning techniques, leveraging pre-trained models to predict gaze direction from image data.  
-The goal is to improve the accessibility and accuracy of gaze tracking in various applications, including assistive technologies and human-computer interaction.
+**EyeTheia** is an open-source project dedicated to **2D gaze estimation**, predicting the user's **point of regard on the screen** in pixel coordinates.  
+It leverages pre-trained deep learning models to infer the gaze position from facial images and landmarks extracted in real time.
+
+A **personal calibration phase** is performed for each user to collect sample data across multiple screen points.  
+These samples are then used to **fine-tune the model**, adapting it to the user's specific facial features and improving gaze prediction accuracy.
 
 ## Environment Setup
 
@@ -20,12 +23,6 @@ To install all dependencies:
 ```bash
 $ make lib
 ```
-
-The dataset can be downloaded from the following link :
-
-* [dataset](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIFaceGaze.zip)
-
-Once downloaded, it should be placed in the dataset/ folder located at the root of the project.
 
 ## Documentation
 
@@ -48,54 +45,31 @@ To run unit tests:
 $ make test
 ```
 
-## Project Structure
+## Dataset
 
-```
-EyeTracking/
-├── LICENSE                     # License for the project
-├── Makefile                    # Commands for installation, testing, and documentation
-├── README.md                   # Main project documentation (overview, installation, usage)
-├── conf.py                     # Sphinx configuration for documentation
-├── images/                     # Images used in documentation
-├── notebooks/                  # Jupyter Notebooks for visualization and experiments
-├── requirements.txt            # List of dependencies for setting up the project
-├── sourcedoc/                  # Sphinx-generated documentation sources
-├── src/                        # Main source code directory
-│   ├── experiments/            # Saved gaze tracking experiment results
-│   │   ├── *.pkl               # Pickle files containing gaze tracking data
-│   ├── main.py                 # Main script for running gaze tracking
-│   ├── mat/                    # Precomputed mean face and eye datasets
-│   │   ├── mean_face_224.mat   # Mean face data
-│   │   ├── mean_left_224.mat   # Mean left eye data
-│   │   └── mean_right_224.mat  # Mean right eye data
-│   ├── models/                 # Saved model checkpoint
-│   ├── tracker/                # Core modules for gaze tracking
-│   │   ├── Calibration.py      # Calibration process for improving model accuracy
-│   │   ├── GazeDataLogger.py   # Handles logging of gaze tracking data
-│   │   ├── GazeModel.py        # The deep learning model for gaze prediction
-│   │   ├── GazeTracker.py      # Main gaze tracking logic
-│   └── utils/                  # Utility functions and configurations
-│       ├── calib_13/*.png      # Calibration grid (13 points)
-│       ├── calib_9/*.png       # Calibration grid (9 points)
-│       ├── calib_5/*.png       # Calibration grid (5 points)
-│       ├── config.py           # Configuration parameters (screen size, calibration settings)
-│       ├── utils.py            # Helper functions for preprocessing and gaze tracking
-├── tests/                      # Unit tests for the project
-└── docs/                       # Sphinx documentation (to be generated)
-```
+The project supports two pre-trained model configurations:
+
+- **`itracker_baseline.tar`** — based on the original *iTracker* architecture from the paper  
+  [*Eye Tracking for Everyone*](https://arxiv.org/abs/1606.05814), trained on the **GazeCapture** dataset.  
+  This model provides a strong baseline for general-purpose 2D gaze estimation.
+
+- **`itracker_mpiiface.tar`** — a version **retrained from scratch** using the  
+  [**MPIIFaceGaze**](http://datasets.d2.mpi-inf.mpg.de/MPIIGaze/MPIIFaceGaze.zip) dataset, which contains real-world face images with accurate gaze annotations.
+
+If you plan to train the model, download and extract the MPIIFaceGaze dataset into the `dataset/` directory at the root of the project.  
+For **inference only**, this dataset is **not required**.
 
 ## VM User Webcam
 
-If you are using a **virtual machine (VM)** such as **WSL2**, please refer to the subsection  
-[`Running on a Virtual Machine (e.g., WSL2)`](docs/_build/html/index.html) in the generated documentation.
+If you are not using the FastAPI routes for inference and are running the project inside a **virtual machine (VM)** such as **WSL2**,  
+please refer to the subsection [`Running on a Virtual Machine (e.g., WSL2)`](docs/_build/html/index.html) in the generated documentation.
 
-This section provides detailed instructions on how to stream your webcam using **MJPEG Streamer**  
-and configure the environment variable `WEBCAM_URL` to enable webcam support in the project.
+That section provides detailed instructions on how to stream your webcam using **MJPEG Streamer**,  
+and how to configure the environment variable `WEBCAM_URL` to enable webcam access within the project.
 
 ## License
 
-This project is under the **MIT License**. See the `LICENSE` file for details.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.  
+You may redistribute and/or modify it under the terms of the GPL-3.0 as published by the Free Software Foundation.
 
-## Contact
-
-For any questions or contributions, feel free to contact **Stevenson Pather** or **Deise Santana Maia**
+See the [`LICENSE`](LICENSE) file for full details.
