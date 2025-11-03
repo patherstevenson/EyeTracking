@@ -84,7 +84,7 @@ def GazeTrain(
             "amp": amp,
             "channels_last": channels_last,
             "smooth_l1_delta": smooth_l1_delta,
-            "device": device
+            "device": str(device)
         }, cfg, indent=2)
 
     # --- Resume from checkpoint ---
