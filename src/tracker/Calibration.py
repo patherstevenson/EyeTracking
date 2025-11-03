@@ -18,7 +18,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from utils.utils import pixels_to_gaze_cm, get_numbered_calibration_points, euclidan_distance_radius
+from utils.utils import pixels_to_gaze_cm, normalize_MPIIFaceGaze, get_numbered_calibration_points, euclidan_distance_radius
 from utils.config import SCREEN_WIDTH, SCREEN_HEIGHT, CALIBRATION_IMAGE_PATH, CALIBRATION_PTS
 from tracker.CalibrationDataset import CalibrationDataset
 
@@ -93,6 +93,9 @@ class Calibration:
                     self.calibration_done = True
             else:
                 print(f"Incorrect click at ({x}, {y}). Please click on point {self.current_index}!")
+
+    def set_capture_points(self, capture_points):
+        self.capture_points = capture_points
 
     def evaluate_calibration_accuracy(self) -> tuple[float, float]:
         """
@@ -176,9 +179,17 @@ class Calibration:
                         face_input, left_eye_input, right_eye_input, face_grid_input = self.gaze_tracker.extract_features(img, face_landmarks, SCREEN_WIDTH, SCREEN_HEIGHT)
 
                         if self.current_target:
+                            
                             user_x, user_y = self.current_target
-                            gaze_x, gaze_y = pixels_to_gaze_cm(user_x, user_y)
-
+                            
+                            match self.gaze_tracker.mp:
+                                case "itracker_baseline.tar":
+                                    gaze_x, gaze_y = pixels_to_gaze_cm(user_x, user_y, SCREEN_WIDTH, SCREEN_HEIGHT)       
+                                case "itracker_mpiiface.tar":
+                                    gaze_x, gaze_y = normalize_MPIIFaceGaze(user_x, user_y, SCREEN_WIDTH, SCREEN_HEIGHT)
+                                case _ :
+                                    raise ValueError
+                            
                             self.capture_points.append(((face_input, left_eye_input, right_eye_input, face_grid_input), (gaze_x, gaze_y)))
                             print(f"Captured: Screen ({user_x}, {user_y}) → Gaze ({gaze_x:.2f}, {gaze_y:.2f})")
 

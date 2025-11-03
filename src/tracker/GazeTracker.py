@@ -56,20 +56,23 @@ class GazeTracker:
         self.margin: int = 20
         self.calibration = Calibration(self)
 
-    def _load_model(self, model_path: str) -> None:
+    def _load_model(self, model_path: str, verbose: bool = True) -> None:
         """
         Loads the gaze tracking model and its weights.
 
         :param model_path: Path to the model checkpoint.
+        :param verbose: verbosity
         :type model_path: str
+        :type verbose: bool
         """
-        match self.device:
-            case "cuda":
-                print(f"\n-----------------\nDevice : {torch.cuda.get_device_name(torch.cuda.current_device())}\n-----------------\n")
-            case "cpu":
-                print(f"\n-----------------\nDevice : CPU\n-----------------\n")
-            case _:
-                pass
+        if verbose:
+            match self.device:
+                case "cuda":
+                    print(f"\n-----------------\nDevice : {torch.cuda.get_device_name(torch.cuda.current_device())}\n-----------------\n")
+                case "cpu":
+                    print(f"\n-----------------\nDevice : CPU\n-----------------\n")
+                case _:
+                    pass
 
         checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
         self.model.load_state_dict(checkpoint['state_dict'], strict=False)
@@ -98,57 +101,21 @@ class GazeTracker:
         self.eyeLeftMean = torch.tensor(self.eyeLeftMean / 255.0, dtype=torch.float32)
         self.eyeRightMean = torch.tensor(self.eyeRightMean / 255.0, dtype=torch.float32)
 
-    def _determine_position(self, pos_x: int, pos_y: int) -> str:
-        """
-        Determines the screen position of the gaze based on pixel coordinates.
-
-        :param pos_x: X-coordinate of the gaze position in pixels.
-        :type pos_x: int
-        :param pos_y: Y-coordinate of the gaze position in pixels.
-        :type pos_y: int
-        :return: Position quadrant of the gaze.
-        :rtype: str
-        """
-        if euclidan_distance_radius(pt1=(pos_x,pos_y), pt2=(MID_X,MID_Y), radius=SCREEN_HEIGHT//4):
-            return "Center"
-        elif pos_x < MID_X and pos_y < MID_Y:
-            return "Top Left"
-        elif pos_x > MID_X and pos_y < MID_Y:
-            return "Top Right"
-        elif pos_x < MID_X and pos_y > MID_Y:
-            return "Bottom Left"
-        elif pos_x > MID_X and pos_y > MID_Y:
-            return "Bottom Right"
-        else:
-            "None"
-
-    def _determine_quadrant(self, gaze_x: float, gaze_y: float) -> str:
-        """
-        Determines the gaze quadrant based on model output in centimeters.
-
-        :param gaze_x: Predicted gaze X-coordinate in cm.
-        :type gaze_x: float
-        :param gaze_y: Predicted gaze Y-coordinate in cm.
-        :type gaze_y: float
-        :return: Gaze quadrant.
-        :rtype: str
-        """
-        if gaze_x < 0 and gaze_y > 0:
-            return "Top Left"
-        elif gaze_x > 0 and gaze_y > 0:
-            return "Top Right"
-        elif gaze_x < 0 and gaze_y < 0:
-            return "Bottom Left"
-        elif gaze_x > 0 and gaze_y < 0:
-            return "Bottom Right"
-        else:
-            return "Center"
-
     def save_tracking_data(self) -> None:
         """
         Saves logged gaze tracking data to a file.
         """
         self.logger.save_data()
+
+    def reset_model(self) -> None:
+        """
+        Reloads the original pre-trained weights from disk.
+        This is useful to reset the model before performing a new calibration,
+        ensuring that fine-tuning does not accumulate across sessions.
+        """
+        print(f"[GazeTracker] Resetting model to original pre-trained weights ({self.mp}).")
+        self._load_model(self.model_path, verbose=False)
+        self.model.eval()
 
     def train(self, dataset: Dataset, epochs: int = 10, learning_rate: float = 1e-4, batch_size: int = 4) -> None:
         """
@@ -192,7 +159,6 @@ class GazeTracker:
             print(f"Epoch {epoch+1}/{epochs}, Loss: {total_loss/len(dataloader):.4f}")
 
         print("Fine-tuning complete.")
-
 
     def extract_features(self, img: torch.Tensor, face_landmarks, SCREEN_WIDTH:int , SCREEN_HEIGHT: int) -> tuple:
         """
@@ -242,7 +208,7 @@ class GazeTracker:
         return face_input, left_eye_input, right_eye_input, face_grid_input
 
     def predict_gaze(self, face_input: torch.Tensor, left_eye_input: torch.Tensor,
-                           right_eye_input: torch.Tensor, face_grid_input: torch.Tensor,) -> tuple[int, int, str]:
+                           right_eye_input: torch.Tensor, face_grid_input: torch.Tensor,) -> tuple[float, float]:
         """
         Predicts the gaze direction based on the input features.
         Converts the predicted gaze coordinates from centimeters to pixels
@@ -256,8 +222,8 @@ class GazeTracker:
         :type right_eye_input: torch.Tensor
         :param face_grid_input: Face grid tensor representing spatial positioning.
         :type face_grid_input: torch.Tensor
-        :return: Tuple containing pixel coordinates (x, y) and the screen position.
-        :rtype: tuple[int, int, str]
+        :return: Tuple containing cm coordinates (x, y)
+        :rtype: tuple[float, float]
         """
 
         with torch.no_grad():
@@ -265,29 +231,10 @@ class GazeTracker:
                 face_input, left_eye_input, right_eye_input, face_grid_input
             )
             gaze_x, gaze_y = gaze_prediction.cpu().numpy().flatten()
+            
+            self.logger.log_data(gaze_x, gaze_y)
 
-            # Convert to pixel coordinates
-            match self.mp:
-                case "itracker_mpiiface.tar":
-                    pos_x, pos_y = denormalized_MPIIFaceGaze(gaze_x, gaze_y, SCREEN_WIDTH, SCREEN_HEIGHT)
-                case "itracker_baseline.tar":
-                    pos_x, pos_y = gaze_cm_to_pixels(gaze_x, gaze_y)
-                case _:
-                    pass
-
-            # Determine the position on the screen
-            position = self._determine_position(pos_x, pos_y)
-            quadrant = self._determine_quadrant(gaze_x, gaze_y)
-
-            # Log data
-            self.logger.log_data(pos_x, pos_y)
-
-            print(
-                f"Gaze Prediction : ({gaze_x:.2f}, {gaze_y:.2f}) - {quadrant}, "
-                f"Pixels (x,y): ({pos_x}, {pos_y}) - {position}"
-            )
-
-            return pos_x, pos_y, position
+            return gaze_x, gaze_y
 
     def run(self, webcam: cv2.VideoCapture) -> None:
         """
