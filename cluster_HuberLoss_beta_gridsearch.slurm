@@ -12,7 +12,7 @@
 
 module purge
 module load conda/23.11-py311
-conda activate eyetheia
+source /home/stevenson.pather/.conda/envs/eyetheia/bin/activate
 
 BETAS=(0.01 0.02 0.05 0.10 0.20 0.40 0.50 0.60 0.70 0.80 0.90 1.00)
 DELTA=${BETAS[$SLURM_ARRAY_TASK_ID]}
