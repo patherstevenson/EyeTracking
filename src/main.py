@@ -16,7 +16,6 @@ This module initializes the webcam, loads the gaze tracking model, and starts th
 import cv2
 import os
 from tracker.GazeTracker import GazeTracker
-from tracker.Calibration import Calibration
 
 def main() -> None:
     """
