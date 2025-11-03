@@ -150,7 +150,7 @@ def generate_face_grid(face_bbox: tuple[int, int, int, int],
     face_grid[grid_y:grid_y + grid_h, grid_x:grid_x + grid_w] = 1
     return face_grid.flatten()
 
-def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
+def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float, SCREEN_WIDTH: int, SCREEN_HEIGHT: int)  -> tuple[int, int]:
     """
     Converts gaze prediction from cm (relative to center) into screen pixel coordinates.
 
@@ -166,7 +166,7 @@ def gaze_cm_to_pixels(gaze_x_cm: float, gaze_y_cm: float) -> tuple[int, int]:
 
     return int(x_pixel), int(y_pixel)
 
-def pixels_to_gaze_cm(x_pixel: int, y_pixel: int) -> tuple[float, float]:
+def pixels_to_gaze_cm(x_pixel: int, y_pixel: int, SCREEN_WIDTH: int, SCREEN_HEIGHT: int) -> tuple[float, float]:
     """
     Convert pixel coordinates to gaze coordinates in cm relative to screen center.
 
