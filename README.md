@@ -24,9 +24,25 @@ To install all dependencies:
 $ make lib
 ```
 
-## Starting a Tracker Server
+## Running EyeTheia
 
-EyeTheia currently supports two tracker configurations:
+You have two main ways to run **EyeTheia**, depending on your use case:
+
+### 1. Run the full demo (tracking + calibration)
+
+If you want to directly try the complete demo — including the calibration phase and real-time gaze tracking — simply run:
+
+```bash
+$ make run
+```
+
+This command launches the end-to-end application locally, handling camera input, calibration, and live gaze prediction.
+
+## Start a tracker server (API mode)
+
+If you prefer to use EyeTheia as a backend service via its FastAPI interface, you can start a tracker server manually or through the Makefile.
+
+Supported models :
 
 - **baseline** — iTracker trained on the **GazeCapture** dataset  
 - **mpiiface** — iTracker retrained on the **MPIIFaceGaze** dataset
@@ -42,7 +58,7 @@ $ make baseline
 $ make mpii
 ```
 
-Alternatively, you can launch a tracker manually :
+Or manually:
 
 ```bash
 $ python src/run_server.py --model_path MODEL_PATH [--host HOST]
@@ -55,6 +71,18 @@ $ python src/run_server.py --model_path MODEL_PATH [--host HOST]
   - port 8002 for mpiiface
 
 *Note: Each tracker runs its own FastAPI server, allowing multiple instances to operate simultaneously on different ports.*
+
+This mode exposes an API for external clients (e.g., JavaScript frontends using MediaPipe) to send frames and receive gaze predictions in real time.
+
+## API Usage Example
+
+As a demonstration, we have developed a **JavaScript frontend** that interacts directly with the tracker API.  
+It handles webcam capture via **MediaPipe**, sends facial landmarks to the backend, and receives real-time gaze predictions.
+
+- [pygaze.js – Calypso frontend example](https://git.interactions-team.fr/INTERACTIONS/calypso/src/branch/main/src/experiment/trackers/pygaze.js)
+
+This implementation can serve as a reference for integrating **EyeTheia** into web-based experimental setups or **interactive applications** involving gaze-based control or accessibility.
+
 ## Documentation
 
 We use **Sphinx** to generate project documentation.  
