@@ -24,6 +24,37 @@ To install all dependencies:
 $ make lib
 ```
 
+## Starting a Tracker Server
+
+EyeTheia currently supports two tracker configurations:
+
+- **baseline** — iTracker trained on the **GazeCapture** dataset  
+- **mpiiface** — iTracker retrained on the **MPIIFaceGaze** dataset
+
+You can start them directly using the **Makefile** commands:
+
+```bash
+# Launch the baseline tracker (iTracker trained on GazeCapture)
+$ make baseline
+```
+```bash
+# Launch the MPIIFaceGaze retrained tracker
+$ make mpii
+```
+
+Alternatively, you can launch a tracker manually :
+
+```bash
+$ python src/run_server.py --model_path MODEL_PATH [--host HOST]
+```
+
+- The --model_path argument is mandatory, specifying which model weights to load.
+- The --host argument is optional (default: 127.0.0.1).
+- The port is automatically assigned based on the selected model :
+  - port 8001 : baseline
+  - port 8002 for mpiiface
+
+*Note: Each tracker runs its own FastAPI server, allowing multiple instances to operate simultaneously on different ports.*
 ## Documentation
 
 We use **Sphinx** to generate project documentation.  
