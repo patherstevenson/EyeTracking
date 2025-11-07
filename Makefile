@@ -22,6 +22,12 @@ lib:
 	pip install -r $(LIBS)
 	pip install torch==2.6.0 torchvision==0.21.0+cu124 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
 
+mpii:
+	python src/run_server.py --model_path itracker_mpiiface.tar
+
+baseline:
+	python src/run_server.py --model_path itracker_baseline.tar
+
 clean:
 	rm -f *~ */*~
 	rm -rf __pycache__ */__pycache__
