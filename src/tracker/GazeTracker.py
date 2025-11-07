@@ -30,6 +30,8 @@ from .GazeDataLogger import GazeDataLogger
 from .GazeModel import GazeModel
 from .Calibration import Calibration
 
+from OneEuroFilter import OneEuroFilter
+import time
 
 
 class GazeTracker:
@@ -55,6 +57,20 @@ class GazeTracker:
         self.logger = GazeDataLogger()
         self.margin: int = 20
         self.calibration = Calibration(self)
+        self.window_name = "EyeTheia Live Gaze Visualization"
+
+        self.gaze_filter_x = OneEuroFilter(
+            freq=60,       # fréquence estimée (à ajuster selon ton setup)
+            mincutoff=1.0, # plus bas = plus lisse
+            beta=0.05,     # plus haut = plus réactif aux mouvements rapides
+            dcutoff=1.0
+        )
+        self.gaze_filter_y = OneEuroFilter(
+            freq=60,
+            mincutoff=1.0,
+            beta=0.05,
+            dcutoff=1.0
+        )
 
     def _load_model(self, model_path: str, verbose: bool = True) -> None:
         """
@@ -65,6 +81,7 @@ class GazeTracker:
         :type model_path: str
         :type verbose: bool
         """
+        print(self.device)
         if verbose:
             match self.device:
                 case "cuda":
@@ -97,7 +114,7 @@ class GazeTracker:
                 self.eyeRightMean = loadMetadata(os.path.join(mean_path, 'mean_right_224_MPIIFace.mat'))['mean_eye_right']
             case _ :
                 pass
-            
+
         self.faceMean = torch.tensor(self.faceMean / 255.0, dtype=torch.float32)
         self.eyeLeftMean = torch.tensor(self.eyeLeftMean / 255.0, dtype=torch.float32)
         self.eyeRightMean = torch.tensor(self.eyeRightMean / 255.0, dtype=torch.float32)
@@ -250,27 +267,90 @@ class GazeTracker:
         print("\nFine-tuning the model with calibration data...")
         self.train(calibration_dataset, epochs=EPOCH, learning_rate=LR, batch_size=BATCH_SIZE)
 
-        # start eval of the proccesed calibration
+        # start eval of the processed calibration
         mean_error, std_error = self.calibration.evaluate_calibration_accuracy()
+
+        # Setup fullscreen window for visualization
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        fullscreen = True
+
+        # Default position in case we have no valid prediction yet
+        gaze_x_px, gaze_y_px = MID_X, MID_Y
+
+        start_time = time.perf_counter()
 
         with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
             while True:
                 success, img = webcam.read()
                 if not success:
                     print("Error reading from the webcam.")
-                    exit(1)
+                    break
 
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                 img_mp = face_mesh.process(img_rgb)
 
                 if img_mp.multi_face_landmarks:
                     for face_landmarks in img_mp.multi_face_landmarks:
-                        face_input, left_eye_input, right_eye_input, face_grid_input = self.extract_features(img, face_landmarks, SCREEN_WIDTH, SCREEN_HEIGHT)
-                        self.predict_gaze(face_input, left_eye_input, right_eye_input, face_grid_input)
+                        face_input, left_eye_input, right_eye_input, face_grid_input = self.extract_features(
+                            img, face_landmarks, SCREEN_WIDTH, SCREEN_HEIGHT
+                        )
 
-                cv2.imshow("Face Mesh with Gaze Prediction", img)
+                        gaze_x, gaze_y = self.predict_gaze(
+                            face_input, left_eye_input, right_eye_input, face_grid_input
+                        )
 
-                if cv2.waitKey(20) & 0xFF == ord("q"):
+                        match self.mp:
+                            case "itracker_mpiiface.tar":
+                                gx_px, gy_px = denormalized_MPIIFaceGaze(
+                                    gaze_x, gaze_y, SCREEN_WIDTH, SCREEN_HEIGHT
+                                )
+                            case "itracker_baseline.tar":
+                                gx_px, gy_px = gaze_cm_to_pixels(
+                                    gaze_x, gaze_y, SCREEN_WIDTH, SCREEN_HEIGHT
+                                )
+                            case _:
+                                raise ValueError("invalid model_path")
+
+                        # --- One Euro Filter smoothing (timestamp in seconds) ---
+                        timestamp = time.perf_counter() - start_time
+                        gx_px = float(self.gaze_filter_x.filter(float(gx_px), timestamp))
+                        gy_px = float(self.gaze_filter_y.filter(float(gy_px), timestamp))
+
+                        # store last filtered values
+                        gaze_x_px, gaze_y_px = gx_px, gy_px
+
+                # White fullscreen background
+                white_bg = np.ones((SCREEN_HEIGHT, SCREEN_WIDTH, 3), dtype=np.uint8) * 255
+
+                # Draw solid black dot at filtered gaze position
+                cx, cy = int(gaze_x_px), int(gaze_y_px)
+                cv2.circle(white_bg, (cx, cy), 10, (0, 0, 0), -1)
+
+                # (Optionnel) hint utilisateur
+                cv2.putText(
+                    white_bg,
+                    "Esc: toggle fullscreen  |  Q: quit",
+                    (20, SCREEN_HEIGHT - 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (0, 0, 0),
+                    1,
+                    cv2.LINE_AA,
+                )
+
+                cv2.imshow(self.window_name, white_bg)
+
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord("q"):
                     break
+                elif key == 27:  # ESC
+                    fullscreen = not fullscreen
+                    cv2.setWindowProperty(
+                        self.window_name,
+                        cv2.WND_PROP_FULLSCREEN,
+                        cv2.WINDOW_FULLSCREEN if fullscreen else cv2.WINDOW_NORMAL,
+                    )
 
-        self.logger.save_data()
+        cv2.destroyWindow(self.window_name)
+        #self.logger.save_data()
