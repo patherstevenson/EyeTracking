@@ -76,15 +76,7 @@ class GazeTracker:
 
         checkpoint = torch.load(model_path, map_location=self.device, weights_only=True)
 
-        match self.mp:
-            case "itracker_baseline.tar":
-                self.model.load_state_dict(checkpoint['state_dict'], strict=False)
-            case "itracker_mpiiface.tar":
-                self.model.load_state_dict(checkpoint["model"], strict=False)
-            case _:
-                raise ValueError("invalid model_path")
-
-        self.model.load_state_dict(checkpoint, strict=False)
+        self.model.load_state_dict(checkpoint['state_dict'], strict=False)
         self.model.to(self.device)
         self.model.eval()
 
