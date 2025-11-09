@@ -62,7 +62,7 @@ class GazeTracker:
         self.gaze_filter_x = OneEuroFilter(
             freq=60,
             mincutoff=1.0,
-            beta=0.007,     
+            beta=0.007,
             dcutoff=1.
         )
         self.gaze_filter_y = OneEuroFilter(
@@ -277,6 +277,8 @@ class GazeTracker:
 
         # Default position in case we have no valid prediction yet
         gaze_x_px, gaze_y_px = MID_X, MID_Y
+        prev_x, prev_y = MID_X, MID_Y
+
         smoothing_alpha = 0.2
         
         start_time = time.perf_counter()
@@ -330,7 +332,7 @@ class GazeTracker:
 
                 # Draw solid black dot at filtered gaze position
                 cx, cy = int(gaze_x_px), int(gaze_y_px)
-                cv2.circle(white_bg, (cx, cy), 10, (0, 0, 0), -1)
+                cv2.circle(white_bg, (cx, cy), 23, (0, 0, 0), 2)
 
                 # (Optionnel) hint utilisateur
                 cv2.putText(
