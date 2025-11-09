@@ -60,15 +60,15 @@ class GazeTracker:
         self.window_name = "EyeTheia Live Gaze Visualization"
 
         self.gaze_filter_x = OneEuroFilter(
-            freq=60,       # fréquence estimée (à ajuster selon ton setup)
-            mincutoff=1.0, # plus bas = plus lisse
-            beta=0.05,     # plus haut = plus réactif aux mouvements rapides
-            dcutoff=1.0
+            freq=60,
+            mincutoff=1.0,
+            beta=0.007,     
+            dcutoff=1.
         )
         self.gaze_filter_y = OneEuroFilter(
             freq=60,
             mincutoff=1.0,
-            beta=0.05,
+            beta=0.007,
             dcutoff=1.0
         )
 
@@ -277,7 +277,8 @@ class GazeTracker:
 
         # Default position in case we have no valid prediction yet
         gaze_x_px, gaze_y_px = MID_X, MID_Y
-
+        smoothing_alpha = 0.2
+        
         start_time = time.perf_counter()
 
         with mp.solutions.face_mesh.FaceMesh(refine_landmarks=True, max_num_faces=1) as face_mesh:
@@ -318,8 +319,12 @@ class GazeTracker:
                         gy_px = float(self.gaze_filter_y.filter(float(gy_px), timestamp))
 
                         # store last filtered values
-                        gaze_x_px, gaze_y_px = gx_px, gy_px
+                        gaze_x_px = prev_x + smoothing_alpha * (gx_px - prev_x)
+                        gaze_y_px = prev_y + smoothing_alpha * (gy_px - prev_y)
 
+                        # update previous position for next frame
+                        prev_x, prev_y = gaze_x_px, gaze_y_px
+                        
                 # White fullscreen background
                 white_bg = np.ones((SCREEN_HEIGHT, SCREEN_WIDTH, 3), dtype=np.uint8) * 255
 
