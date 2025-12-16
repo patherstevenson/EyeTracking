@@ -14,3 +14,4 @@ jinja2==3.1.5
 sphinx==8.1.3
 Markdown==3.6
 pytest==8.3.4
+oneeurofilter==0.2.1
