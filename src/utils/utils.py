@@ -421,3 +421,74 @@ def extract_and_save_batches(
         print(f"[OK] Batch {prefix} {i+1} saved to {batch_path}")
         del df_features_batch
         gc.collect()
+        
+def extract_and_save_batches_test(
+    df: pd.DataFrame,
+    tracker,
+    screen_size: dict,
+    prefix: str,
+    output_dir: str,
+    batch_size: int = 1000,
+    image_col: str = "img_path",
+    gaze_cols: Union[tuple, list] = ("gaze_x", "gaze_y"),
+):
+    os.makedirs(output_dir, exist_ok=True)
+
+    face_mesh = mp.solutions.face_mesh.FaceMesh(
+        static_image_mode=True,
+        refine_landmarks=True,
+        max_num_faces=1
+    )
+
+    num_rows = len(df)
+    num_batches = (num_rows + batch_size - 1) // batch_size
+
+    for i in range(num_batches):
+        start = i * batch_size
+        end = min(start + batch_size, num_rows)
+        
+        df_batch = df.iloc[start:end]
+        df_features_batch = []
+
+        print(f"\n=== Processing batch {i+1}/{num_batches} ({start} to {end}) ===")
+
+        for _, row in tqdm(df_batch.iterrows(), total=len(df_batch)):
+            img_path = row[image_col]
+            gaze = tuple(row[col] for col in gaze_cols)
+            
+            try:
+                img = cv2.imread(img_path)
+                if img is None:
+                    raise ValueError("Image not found or unreadable")
+
+                image_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img_mp = face_mesh.process(image_rgb)
+                if not img_mp.multi_face_landmarks:
+                    raise ValueError("No face landmarks detected")
+                
+                w,h = screen_size[row["subject"]]
+                features = tracker.extract_features(img, img_mp.multi_face_landmarks[0],w,h)
+
+                if features is not None:
+                    face, eye_left, eye_right, face_grid = features
+
+                    df_features_batch.append({
+                        'img_path': img_path,
+                        'gaze': gaze,
+                        'face': face,
+                        'eye_left': eye_left,
+                        'eye_right': eye_right,
+                        'face_grid': face_grid
+                    })
+
+            except Exception as e:
+                print(f"[ERROR] Failed on {img_path}: {e}")
+                continue
+
+        batch_path = os.path.join(output_dir, f"{prefix}/batch_{prefix}_{i+1}.pkl")
+        with open(batch_path, "wb") as f:
+            pickle.dump(df_features_batch, f)
+
+        print(f"[OK] Batch {prefix} {i+1} saved to {batch_path}")
+        del df_features_batch
+        gc.collect()
