@@ -53,7 +53,7 @@ def plot_db_side_over_time(
         raise ValueError(f"No tracker data found in {db_path}")
 
     # Pick reference session (SeeSo)
-    ref_list = [s for s in sess_list if str(s["tracker"]).lower() == "seeso"]
+    ref_list = [s for s in sess_list if str(s["tracker"]) == "SeeSo"]
     if not ref_list:
         raise ValueError(f"SeeSo tracker not found in {db_path}")
     ref = ref_list[0]
@@ -251,12 +251,13 @@ def load_trackers_from_db(db_path: Path):
 
     sessions = []
     for tname, sub in track_rows.groupby("tracker_name"):
+        if tname in {"A2"}:continue
         sess = {
             "db_path": db_path,
             "meta": meta,
             "identifier": meta.get("identifier"),
             "experiment_type": meta.get("type"),
-            "tracker": tname,   # 'seeso', 'pyGaze', 'pyMPIIGaze'
+            "tracker": tname,  
             "events": events_df,
             "images": img_rows,
             "gaze": sub[["sequence", "timestamp", "gx", "gy", "tracker_timestamp"]].copy(),
@@ -812,7 +813,7 @@ def analyze_all_dbs(db_root: str, max_align_gap_ms: float = 50.0):
 
     for (identifier, exp_type), sess_list in groups.items():
         # référence SeeSo
-        ref_list = [s for s in sess_list if s["tracker"].lower() == "seeso"]
+        ref_list = [s for s in sess_list if s["tracker"] == "SeeSo"]
         if not ref_list:
             continue
         ref = ref_list[0]
